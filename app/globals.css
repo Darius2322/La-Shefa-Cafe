@@ -1,0 +1,83 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  background-color: #F8F4EE;
+  color: #2C1409;
+}
+
+.container-lsc {
+  width: 100%;
+  max-width: 1180px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1.25rem;
+  padding-right: 1.25rem;
+}
+
+.divider {
+  border-top: 1px solid rgba(65, 29, 13, 0.15);
+}
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: #194850;
+  color: #F8F4EE;
+  padding: 0.75rem 1.5rem;
+  border-radius: 4px;
+  font-weight: 500;
+  transition: background-color 150ms ease;
+}
+.btn-primary:hover {
+  background-color: #0F2F35;
+}
+
+.btn-caramel {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: #CB9D6C;
+  color: #2C1409;
+  padding: 0.75rem 1.5rem;
+  border-radius: 4px;
+  font-weight: 500;
+  transition: background-color 150ms ease;
+}
+.btn-caramel:hover {
+  background-color: #b9885a;
+}
+
+.btn-outline {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px solid #F8F4EE;
+  color: #F8F4EE;
+  padding: 0.75rem 1.5rem;
+  border-radius: 4px;
+  font-weight: 500;
+  transition: background-color 150ms ease;
+}
+.btn-outline:hover {
+  background-color: rgba(248, 244, 238, 0.1);
+}
+
+:focus-visible {
+  outline: 2px solid #CB9D6C;
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
