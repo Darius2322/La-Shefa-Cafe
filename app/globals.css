@@ -81,3 +81,49 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Brand-themed native controls — checkboxes, radios, selects, scrollbars.
+   Full replacement of native date/time picker UI isn't possible in plain CSS,
+   but color/accent theming carries through browser chrome consistently. */
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: #194850;
+  width: 16px;
+  height: 16px;
+}
+
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23411D0D' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  padding-right: 2rem;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator,
+input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  filter: invert(20%) sepia(15%) saturate(1200%) hue-rotate(140deg);
+  cursor: pointer;
+}
+
+::selection {
+  background-color: #CB9D6C;
+  color: #2C1409;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: #F8F4EE;
+}
+::-webkit-scrollbar-thumb {
+  background: #CB9D6C;
+  border-radius: 6px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #194850;
+}

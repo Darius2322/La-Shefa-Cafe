@@ -1,9 +1,6 @@
 import type { Metadata } from "next";
 import { Fraunces, Public_Sans } from "next/font/google";
 import "./globals.css";
-import { Navbar } from "@/components/Navbar";
-import { Footer } from "@/components/Footer";
-import { CartProvider } from "@/components/CartProvider";
 
 const display = Fraunces({
   subsets: ["latin"],
@@ -19,21 +16,38 @@ const body = Public_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "La Shefa Cafe — Eat Quality, Stay Healthy",
+  metadataBase: new URL("https://la-shefa-cafe.vercel.app"),
+  title: {
+    default: "La Shefa Cafe — Eat Quality, Stay Healthy",
+    template: "%s"
+  },
   description:
-    "La Shefa Cafe: fresh café food, coffee, and made-to-order cakes. Order online, book a table, or track your order."
+    "La Shefa Cafe: fresh café food, coffee, and made-to-order cakes. Order online, book a table, or track your order.",
+  openGraph: {
+    type: "website",
+    siteName: "La Shefa Cafe",
+    title: "La Shefa Cafe — Eat Quality, Stay Healthy",
+    description:
+      "Fresh café food, coffee, and made-to-order cakes. Order online, book a table, or track your order.",
+    images: ["/logo.jpg"]
+  },
+  twitter: {
+    card: "summary",
+    title: "La Shefa Cafe",
+    description: "Eat quality, stay healthy.",
+    images: ["/logo.jpg"]
+  },
+  manifest: "/manifest.json"
+};
+
+export const viewport = {
+  themeColor: "#194850"
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${display.variable} ${body.variable}`}>
-      <body className="font-body">
-        <CartProvider>
-          <Navbar />
-          <main>{children}</main>
-          <Footer />
-        </CartProvider>
-      </body>
+      <body className="font-body">{children}</body>
     </html>
   );
 }
