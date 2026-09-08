@@ -6,7 +6,10 @@ import { supabase } from "@/lib/supabase";
 
 const STEPS = ["received", "confirmed", "preparing", "ready", "out_for_delivery", "completed"];
 
+<<<<<<< HEAD
 type StatusEntry = { status: string; changed_at: string };
+=======
+>>>>>>> a3626bea2327b444c966850b0fcc1e2d0793cfb2
 type TrackResult = {
   order_number: string;
   customer_name: string;
@@ -14,6 +17,7 @@ type TrackResult = {
   payment_status: string;
   total: number;
   created_at: string;
+<<<<<<< HEAD
   fulfillment_type: string;
   delivery_address: string | null;
   items: { name: string; quantity: number; unit_price: number }[];
@@ -46,6 +50,11 @@ function StepIcon({ step, className }: { step: string; className?: string }) {
   }
 }
 
+=======
+  items: { name: string; quantity: number; unit_price: number }[];
+};
+
+>>>>>>> a3626bea2327b444c966850b0fcc1e2d0793cfb2
 export default function TrackPage() {
   return (
     <Suspense fallback={null}>
@@ -80,12 +89,15 @@ function TrackPageInner() {
   const activeIndex = result && result !== "not_found" ? STEPS.indexOf(result.status) : -1;
   const isCancelled = result && result !== "not_found" && result.status === "cancelled";
 
+<<<<<<< HEAD
   function timestampFor(step: string): string | null {
     if (!result || result === "not_found") return null;
     const entry = result.status_history?.find((h) => h.status === step);
     return entry ? entry.changed_at : null;
   }
 
+=======
+>>>>>>> a3626bea2327b444c966850b0fcc1e2d0793cfb2
   return (
     <div className="container-lsc py-16 max-w-2xl">
       <h1 className="font-display text-4xl text-brown mb-3">Track Your Order</h1>
@@ -115,7 +127,11 @@ function TrackPageInner() {
       </form>
 
       {result === "not_found" && (
+<<<<<<< HEAD
         <div className="border border-dashed border-brown/25 rounded-sm p-8 text-center mb-8">
+=======
+        <div className="border border-dashed border-brown/25 rounded-sm p-8 text-center">
+>>>>>>> a3626bea2327b444c966850b0fcc1e2d0793cfb2
           <p className="font-display text-xl text-brown mb-2">No matching order</p>
           <p className="text-brown/60 text-sm">
             Double-check the order number and phone number, then try again.
@@ -123,6 +139,7 @@ function TrackPageInner() {
         </div>
       )}
 
+<<<<<<< HEAD
       {result === "not_found" && (
         <div className="border border-brown/10 rounded-sm p-5 bg-cream/50">
           <p className="text-sm font-medium text-brown mb-1">Need help finding your order?</p>
@@ -132,6 +149,8 @@ function TrackPageInner() {
         </div>
       )}
 
+=======
+>>>>>>> a3626bea2327b444c966850b0fcc1e2d0793cfb2
       {result && result !== "not_found" && (
         <div>
           <div className="flex items-baseline justify-between mb-6">
@@ -147,6 +166,7 @@ function TrackPageInner() {
           {isCancelled ? (
             <p className="text-red-700 font-medium mb-8">This order was cancelled.</p>
           ) : (
+<<<<<<< HEAD
             <ol className="space-y-5 mb-10">
               {STEPS.map((step, i) => {
                 const done = i <= activeIndex;
@@ -184,6 +204,37 @@ function TrackPageInner() {
             </div>
           )}
 
+=======
+            <ol className="flex flex-wrap gap-y-4 mb-10">
+              {STEPS.map((step, i) => (
+                <li key={step} className="flex items-center">
+                  <div className="flex flex-col items-center">
+                    <span
+                      className={`h-3 w-3 rounded-full ${
+                        i <= activeIndex ? "bg-teal" : "bg-brown/20"
+                      }`}
+                    />
+                    <span
+                      className={`text-xs mt-2 capitalize whitespace-nowrap ${
+                        i <= activeIndex ? "text-teal font-medium" : "text-brown/40"
+                      }`}
+                    >
+                      {step.replace(/_/g, " ")}
+                    </span>
+                  </div>
+                  {i < STEPS.length - 1 && (
+                    <span
+                      className={`h-px w-8 sm:w-12 mx-1 ${
+                        i < activeIndex ? "bg-teal" : "bg-brown/20"
+                      }`}
+                    />
+                  )}
+                </li>
+              ))}
+            </ol>
+          )}
+
+>>>>>>> a3626bea2327b444c966850b0fcc1e2d0793cfb2
           <div className="divider pt-6">
             <p className="text-sm text-brown/60 mb-2">Items</p>
             <ul className="space-y-1 mb-4">

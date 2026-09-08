@@ -1,6 +1,10 @@
 "use client";
 
+<<<<<<< HEAD
 import { useEffect, useState, Fragment } from "react";
+=======
+import { useEffect, useState } from "react";
+>>>>>>> a3626bea2327b444c966850b0fcc1e2d0793cfb2
 import { supabase } from "@/lib/supabase";
 
 const STATUSES = ["received", "confirmed", "preparing", "ready", "out_for_delivery", "completed", "cancelled"];
@@ -12,6 +16,7 @@ type Order = {
   customer_name: string;
   customer_phone: string;
   fulfillment_type: string;
+<<<<<<< HEAD
   delivery_address: string | null;
   status: string;
   payment_status: string;
@@ -50,10 +55,19 @@ function StatusIcon({ status, className }: { status: string; className?: string 
   }
 }
 
+=======
+  status: string;
+  payment_status: string;
+  total: number;
+  created_at: string;
+};
+
+>>>>>>> a3626bea2327b444c966850b0fcc1e2d0793cfb2
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>("all");
+<<<<<<< HEAD
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [history, setHistory] = useState<Record<string, HistoryRow[]>>({});
   const [staffNames, setStaffNames] = useState<Record<string, string>>({});
@@ -70,6 +84,17 @@ export default function AdminOrdersPage() {
     ]);
     setOrders((data as Order[]) ?? []);
     setStaffNames(Object.fromEntries((staffRows ?? []).map((s: any) => [s.auth_user_id, s.full_name])));
+=======
+
+  async function load() {
+    setLoading(true);
+    const { data } = await supabase
+      .from("orders")
+      .select("id, order_number, customer_name, customer_phone, fulfillment_type, status, payment_status, total, created_at")
+      .order("created_at", { ascending: false })
+      .limit(100);
+    setOrders((data as Order[]) ?? []);
+>>>>>>> a3626bea2327b444c966850b0fcc1e2d0793cfb2
     setLoading(false);
   }
 
@@ -77,6 +102,7 @@ export default function AdminOrdersPage() {
     load();
   }, []);
 
+<<<<<<< HEAD
   async function loadHistory(orderId: string) {
     const { data } = await supabase
       .from("order_status_history")
@@ -90,6 +116,11 @@ export default function AdminOrdersPage() {
     await supabase.from("orders").update({ status }).eq("id", id);
     load();
     if (expandedId === id) loadHistory(id);
+=======
+  async function updateStatus(id: string, status: string) {
+    await supabase.from("orders").update({ status }).eq("id", id);
+    load();
+>>>>>>> a3626bea2327b444c966850b0fcc1e2d0793cfb2
   }
 
   async function updatePayment(id: string, payment_status: string) {
@@ -97,12 +128,15 @@ export default function AdminOrdersPage() {
     load();
   }
 
+<<<<<<< HEAD
   function toggleExpand(o: Order) {
     const next = expandedId === o.id ? null : o.id;
     setExpandedId(next);
     if (next) loadHistory(o.id);
   }
 
+=======
+>>>>>>> a3626bea2327b444c966850b0fcc1e2d0793cfb2
   const filtered = filter === "all" ? orders : orders.filter((o) => o.status === filter);
 
   return (
@@ -122,7 +156,11 @@ export default function AdminOrdersPage() {
         <p className="text-brown/50 text-sm">No orders in this view.</p>
       ) : (
         <div className="bg-white border border-brown/10 rounded-sm overflow-x-auto">
+<<<<<<< HEAD
           <table className="w-full text-sm min-w-[860px]">
+=======
+          <table className="w-full text-sm min-w-[820px]">
+>>>>>>> a3626bea2327b444c966850b0fcc1e2d0793cfb2
             <thead className="bg-cream text-brown/60 text-left">
               <tr>
                 <th className="p-3 font-medium">Order #</th>
@@ -131,11 +169,15 @@ export default function AdminOrdersPage() {
                 <th className="p-3 font-medium">Total</th>
                 <th className="p-3 font-medium">Status</th>
                 <th className="p-3 font-medium">Payment</th>
+<<<<<<< HEAD
                 <th className="p-3 font-medium"></th>
+=======
+>>>>>>> a3626bea2327b444c966850b0fcc1e2d0793cfb2
               </tr>
             </thead>
             <tbody>
               {filtered.map((o) => (
+<<<<<<< HEAD
                 <Fragment key={o.id}>
                   <tr className="border-t border-brown/10">
                     <td className="p-3 text-teal font-medium whitespace-nowrap">{o.order_number}</td>
@@ -224,6 +266,39 @@ export default function AdminOrdersPage() {
                     </tr>
                   )}
                 </Fragment>
+=======
+                <tr key={o.id} className="border-t border-brown/10">
+                  <td className="p-3 text-teal font-medium whitespace-nowrap">{o.order_number}</td>
+                  <td className="p-3 text-brown">
+                    <p>{o.customer_name}</p>
+                    <p className="text-xs text-brown/50">{o.customer_phone}</p>
+                  </td>
+                  <td className="p-3 text-brown capitalize">{o.fulfillment_type}</td>
+                  <td className="p-3 text-brown whitespace-nowrap">KSh {Number(o.total).toLocaleString()}</td>
+                  <td className="p-3">
+                    <select
+                      value={o.status}
+                      onChange={(e) => updateStatus(o.id, e.target.value)}
+                      className="border border-brown/20 rounded-sm text-xs px-2 py-1 bg-white capitalize"
+                    >
+                      {STATUSES.map((s) => (
+                        <option key={s} value={s}>{s.replace(/_/g, " ")}</option>
+                      ))}
+                    </select>
+                  </td>
+                  <td className="p-3">
+                    <select
+                      value={o.payment_status}
+                      onChange={(e) => updatePayment(o.id, e.target.value)}
+                      className="border border-brown/20 rounded-sm text-xs px-2 py-1 bg-white capitalize"
+                    >
+                      {PAYMENT_STATUSES.map((s) => (
+                        <option key={s} value={s}>{s}</option>
+                      ))}
+                    </select>
+                  </td>
+                </tr>
+>>>>>>> a3626bea2327b444c966850b0fcc1e2d0793cfb2
               ))}
             </tbody>
           </table>

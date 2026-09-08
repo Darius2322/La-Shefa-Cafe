@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 
 const NAV = [
+<<<<<<< HEAD
   { href: "/adminlsc", label: "Dashboard", icon: "grid", permission: null },
   { href: "/adminlsc/orders", label: "Orders", icon: "receipt", permission: "orders.view" },
   { href: "/adminlsc/pos", label: "Mini POS", icon: "cart", permission: "pos.use" },
@@ -19,6 +20,20 @@ const NAV = [
   { href: "/adminlsc/analytics", label: "Analytics", icon: "chart", permission: "reports.view" },
   { href: "/adminlsc/logs", label: "Activity Logs", icon: "list", permission: "staff.manage" },
   { href: "/adminlsc/settings", label: "Site Settings", icon: "settings", permission: "settings.manage" }
+=======
+  { href: "/adminlsc", label: "Dashboard", icon: "grid" },
+  { href: "/adminlsc/orders", label: "Orders", icon: "receipt" },
+  { href: "/adminlsc/pos", label: "Mini POS", icon: "cart" },
+  { href: "/adminlsc/products", label: "Products", icon: "box" },
+  { href: "/adminlsc/bookings", label: "Bookings", icon: "calendar" },
+  { href: "/adminlsc/cakes", label: "Cake Requests", icon: "cake" },
+  { href: "/adminlsc/offers", label: "Offers", icon: "tag" },
+  { href: "/adminlsc/reviews", label: "Reviews", icon: "star" },
+  { href: "/adminlsc/staff", label: "Staff", icon: "users" },
+  { href: "/adminlsc/analytics", label: "Analytics", icon: "chart" },
+  { href: "/adminlsc/logs", label: "Activity Logs", icon: "list" },
+  { href: "/adminlsc/settings", label: "Site Settings", icon: "settings" }
+>>>>>>> a3626bea2327b444c966850b0fcc1e2d0793cfb2
 ];
 
 type StaffInfo = { full_name: string; role: string } | null;
@@ -61,8 +76,11 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [checking, setChecking] = useState(true);
   const [staff, setStaff] = useState<StaffInfo>(null);
+<<<<<<< HEAD
   const [permissions, setPermissions] = useState<Set<string>>(new Set());
   const [isAdmin, setIsAdmin] = useState(false);
+=======
+>>>>>>> a3626bea2327b444c966850b0fcc1e2d0793cfb2
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
@@ -79,7 +97,11 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       }
       const { data: staffRow } = await supabase
         .from("staff")
+<<<<<<< HEAD
         .select("id, full_name, role, is_active")
+=======
+        .select("full_name, role, is_active")
+>>>>>>> a3626bea2327b444c966850b0fcc1e2d0793cfb2
         .eq("auth_user_id", sessionData.session.user.id)
         .maybeSingle();
 
@@ -89,6 +111,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         return;
       }
 
+<<<<<<< HEAD
       const admin = staffRow.role === "admin";
       let permSet = new Set<string>();
       if (!admin) {
@@ -113,6 +136,10 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           return;
         }
 
+=======
+      if (active) {
+        setStaff({ full_name: staffRow.full_name, role: staffRow.role });
+>>>>>>> a3626bea2327b444c966850b0fcc1e2d0793cfb2
         setChecking(false);
       }
     }
@@ -121,7 +148,11 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
     return () => {
       active = false;
     };
+<<<<<<< HEAD
   }, [router, pathname]);
+=======
+  }, [router]);
+>>>>>>> a3626bea2327b444c966850b0fcc1e2d0793cfb2
 
   useEffect(() => {
     if (checking) return;
@@ -178,7 +209,11 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         )}
       </div>
       <nav className="flex-1 overflow-y-auto py-3">
+<<<<<<< HEAD
         {NAV.filter((item) => isAdmin || !item.permission || permissions.has(item.permission)).map((item) => {
+=======
+        {NAV.map((item) => {
+>>>>>>> a3626bea2327b444c966850b0fcc1e2d0793cfb2
           const active = pathname === item.href;
           const badge =
             item.href === "/adminlsc/orders" ? counts.orders :
@@ -256,6 +291,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       {/* Mobile off-canvas sidebar */}
       {mobileOpen && (
         <div className="fixed inset-0 z-50 flex md:hidden">
+<<<<<<< HEAD
           <div className="w-64 bg-teal text-cream flex flex-col h-full relative">
             <button
               onClick={() => setMobileOpen(false)}
@@ -267,6 +303,9 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
                 <line x1="19" y1="5" x2="5" y2="19" />
               </svg>
             </button>
+=======
+          <div className="w-64 bg-teal text-cream flex flex-col h-full">
+>>>>>>> a3626bea2327b444c966850b0fcc1e2d0793cfb2
             {sidebarContent(true)}
           </div>
           <button
