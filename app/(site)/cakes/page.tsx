@@ -23,6 +23,41 @@ export default function CakesPage() {
   const [submitting, setSubmitting] = useState(false);
   const [confirmation, setConfirmation] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [referenceImageUrl, setReferenceImageUrl] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [imageError, setImageError] = useState<string | null>(null);
+
+  async function handleImageUpload(file: File) {
+    setImageError(null);
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+    if (!allowedTypes.includes(file.type)) {
+      setImageError("Please choose a JPG, PNG or WebP image.");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setImageError("That image is too large — please use a file under 5MB.");
+      return;
+    }
+
+    setUploadingImage(true);
+    const ext = file.name.split(".").pop();
+    const path = `cakes/${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`;
+
+    const { error: uploadErr } = await supabase.storage.from("cake-references").upload(path, file, {
+      cacheControl: "3600",
+      contentType: file.type
+    });
+
+    if (uploadErr) {
+      setImageError("Couldn't upload the image — check your connection and try again.");
+      setUploadingImage(false);
+      return;
+    }
+
+    const { data } = supabase.storage.from("cake-references").getPublicUrl(path);
+    setReferenceImageUrl(data.publicUrl);
+    setUploadingImage(false);
+  }
 
   function update<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -37,7 +72,8 @@ export default function CakesPage() {
       .insert({
         ...form,
         customer_email: form.customer_email || null,
-        collection_date: form.collection_date || null
+        collection_date: form.collection_date || null,
+        reference_image_url: referenceImageUrl
       })
       .select("request_number")
       .single();
@@ -132,6 +168,28 @@ export default function CakesPage() {
 
         <Field label="Special instructions">
           <textarea rows={3} value={form.special_instructions} onChange={(e) => update("special_instructions", e.target.value)} className="input" />
+        </Field>
+
+        <Field label="Reference image (optional)">
+          {referenceImageUrl ? (
+            <div>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={referenceImageUrl} alt="Cake reference" className="w-32 h-32 object-cover rounded-sm border border-brown/10 mb-2" />
+              <button type="button" onClick={() => setReferenceImageUrl(null)} className="text-xs text-teal hover:underline">
+                Remove image
+              </button>
+            </div>
+          ) : (
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              onChange={(e) => e.target.files?.[0] && handleImageUpload(e.target.files[0])}
+              className="text-sm"
+            />
+          )}
+          {uploadingImage && <span className="block text-xs text-brown/50 mt-1">Uploading…</span>}
+          {imageError && <span className="block text-xs text-red-700 mt-1">{imageError}</span>}
+          <span className="block text-xs text-brown/40 mt-1">Show us the design you have in mind — JPG, PNG or WebP, up to 5MB</span>
         </Field>
 
         {error && <p className="text-sm text-red-700">{error}</p>}

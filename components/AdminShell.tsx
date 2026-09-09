@@ -7,18 +7,18 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 
 const NAV = [
-  { href: "/adminlsc", label: "Dashboard", icon: "grid" },
-  { href: "/adminlsc/orders", label: "Orders", icon: "receipt" },
-  { href: "/adminlsc/pos", label: "Mini POS", icon: "cart" },
-  { href: "/adminlsc/products", label: "Products", icon: "box" },
-  { href: "/adminlsc/bookings", label: "Bookings", icon: "calendar" },
-  { href: "/adminlsc/cakes", label: "Cake Requests", icon: "cake" },
-  { href: "/adminlsc/offers", label: "Offers", icon: "tag" },
-  { href: "/adminlsc/reviews", label: "Reviews", icon: "star" },
-  { href: "/adminlsc/staff", label: "Staff", icon: "users" },
-  { href: "/adminlsc/analytics", label: "Analytics", icon: "chart" },
-  { href: "/adminlsc/logs", label: "Activity Logs", icon: "list" },
-  { href: "/adminlsc/settings", label: "Site Settings", icon: "settings" }
+  { href: "/adminlsc", label: "Dashboard", icon: "grid", permission: null },
+  { href: "/adminlsc/orders", label: "Orders", icon: "receipt", permission: "orders.view" },
+  { href: "/adminlsc/pos", label: "Mini POS", icon: "cart", permission: "pos.use" },
+  { href: "/adminlsc/products", label: "Products", icon: "box", permission: "products.manage" },
+  { href: "/adminlsc/bookings", label: "Bookings", icon: "calendar", permission: "bookings.manage" },
+  { href: "/adminlsc/cakes", label: "Cake Requests", icon: "cake", permission: "cakes.manage" },
+  { href: "/adminlsc/offers", label: "Offers", icon: "tag", permission: "reviews.manage" },
+  { href: "/adminlsc/reviews", label: "Reviews", icon: "star", permission: "reviews.manage" },
+  { href: "/adminlsc/staff", label: "Staff", icon: "users", permission: "staff.manage" },
+  { href: "/adminlsc/analytics", label: "Analytics", icon: "chart", permission: "reports.view" },
+  { href: "/adminlsc/logs", label: "Activity Logs", icon: "list", permission: "staff.manage" },
+  { href: "/adminlsc/settings", label: "Site Settings", icon: "settings", permission: "settings.manage" }
 ];
 
 type StaffInfo = { full_name: string; role: string } | null;
@@ -61,6 +61,8 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [checking, setChecking] = useState(true);
   const [staff, setStaff] = useState<StaffInfo>(null);
+  const [permissions, setPermissions] = useState<Set<string>>(new Set());
+  const [isAdmin, setIsAdmin] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
@@ -77,7 +79,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       }
       const { data: staffRow } = await supabase
         .from("staff")
-        .select("full_name, role, is_active")
+        .select("id, full_name, role, is_active")
         .eq("auth_user_id", sessionData.session.user.id)
         .maybeSingle();
 
@@ -87,8 +89,30 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         return;
       }
 
+      const admin = staffRow.role === "admin";
+      let permSet = new Set<string>();
+      if (!admin) {
+        const { data: permRows } = await supabase
+          .from("staff_permissions")
+          .select("permissions(code)")
+          .eq("staff_id", staffRow.id);
+        permSet = new Set((permRows ?? []).map((r: any) => r.permissions?.code).filter(Boolean));
+      }
+
       if (active) {
         setStaff({ full_name: staffRow.full_name, role: staffRow.role });
+        setIsAdmin(admin);
+        setPermissions(permSet);
+
+        // Block direct URL access to pages this staff member isn't authorized for.
+        // (Real enforcement is server-side via RLS — this just prevents a confusing
+        // blank/broken page rather than acting as the actual security boundary.)
+        const currentNavItem = NAV.find((n) => n.href === pathname);
+        if (!admin && currentNavItem?.permission && !permSet.has(currentNavItem.permission)) {
+          router.replace("/adminlsc");
+          return;
+        }
+
         setChecking(false);
       }
     }
@@ -97,7 +121,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
     return () => {
       active = false;
     };
-  }, [router]);
+  }, [router, pathname]);
 
   useEffect(() => {
     if (checking) return;
@@ -154,7 +178,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         )}
       </div>
       <nav className="flex-1 overflow-y-auto py-3">
-        {NAV.map((item) => {
+        {NAV.filter((item) => isAdmin || !item.permission || permissions.has(item.permission)).map((item) => {
           const active = pathname === item.href;
           const badge =
             item.href === "/adminlsc/orders" ? counts.orders :
@@ -232,7 +256,17 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       {/* Mobile off-canvas sidebar */}
       {mobileOpen && (
         <div className="fixed inset-0 z-50 flex md:hidden">
-          <div className="w-64 bg-teal text-cream flex flex-col h-full">
+          <div className="w-64 bg-teal text-cream flex flex-col h-full relative">
+            <button
+              onClick={() => setMobileOpen(false)}
+              aria-label="Close menu"
+              className="absolute top-4 right-4 text-cream/80 hover:text-cream p-1 z-10"
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                <line x1="5" y1="5" x2="19" y2="19" />
+                <line x1="19" y1="5" x2="5" y2="19" />
+              </svg>
+            </button>
             {sidebarContent(true)}
           </div>
           <button

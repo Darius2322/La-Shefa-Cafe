@@ -127,3 +127,9 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
 ::-webkit-scrollbar-thumb:hover {
   background: #194850;
 }
+
+@media print {
+  @page {
+    margin: 8mm;
+  }
+}

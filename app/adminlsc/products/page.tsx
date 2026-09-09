@@ -80,6 +80,7 @@ export default function AdminProductsPage() {
 
   function startNew() {
     setForm(EMPTY_FORM);
+    setUploadPreview(null);
     setShowForm(true);
   }
 
@@ -95,22 +96,46 @@ export default function AdminProductsPage() {
       is_featured: p.is_featured,
       is_hidden: p.is_hidden
     });
+    setUploadPreview(null);
     setShowForm(true);
   }
 
+  const [uploadPreview, setUploadPreview] = useState<{ name: string; size: string } | null>(null);
+
   async function handleImageUpload(file: File) {
-    setUploading(true);
     setError(null);
+
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+    if (!allowedTypes.includes(file.type)) {
+      setError("Please choose a JPG, PNG or WebP image.");
+      return;
+    }
+    const maxBytes = 5 * 1024 * 1024;
+    if (file.size > maxBytes) {
+      setError("That image is too large — please use a file under 5MB.");
+      return;
+    }
+
+    // Show an instant local preview and file details before the network upload finishes.
+    const localPreviewUrl = URL.createObjectURL(file);
+    setForm((f) => ({ ...f, image_url: localPreviewUrl }));
+    setUploadPreview({ name: file.name, size: `${Math.round(file.size / 1024)} KB` });
+    setUploading(true);
+
     const ext = file.name.split(".").pop();
     const path = `products/${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`;
 
     const { error: uploadErr } = await supabase.storage.from("product-images").upload(path, file, {
       cacheControl: "3600",
-      upsert: false
+      upsert: false,
+      contentType: file.type
     });
 
     if (uploadErr) {
-      setError("Couldn't upload the image. Please try again.");
+      const reason = uploadErr.message?.toLowerCase().includes("permission") || uploadErr.message?.toLowerCase().includes("policy")
+        ? "You don't have permission to upload product images. Ask an admin to grant you the products.manage permission."
+        : "Couldn't upload the image — check your connection and try again.";
+      setError(reason);
       setUploading(false);
       return;
     }
@@ -118,6 +143,11 @@ export default function AdminProductsPage() {
     const { data } = supabase.storage.from("product-images").getPublicUrl(path);
     setForm((f) => ({ ...f, image_url: data.publicUrl }));
     setUploading(false);
+  }
+
+  function clearImage() {
+    setForm((f) => ({ ...f, image_url: "" }));
+    setUploadPreview(null);
   }
 
   async function handleSave(e: React.FormEvent) {
@@ -198,16 +228,29 @@ export default function AdminProductsPage() {
           <label className="block">
             <span className="block text-sm font-medium text-brown mb-1">Photo</span>
             {form.image_url && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={form.image_url} alt="Product" className="w-32 h-32 object-cover rounded-sm mb-2 border border-brown/10" />
+              <div className="mb-2">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={form.image_url} alt="Product" className="w-32 h-32 object-cover rounded-sm border border-brown/10" />
+                {uploadPreview && (
+                  <p className="text-xs text-brown/50 mt-1">
+                    {uploadPreview.name} · {uploadPreview.size}
+                    {uploading && " · uploading…"}
+                  </p>
+                )}
+                <button type="button" onClick={clearImage} className="text-xs text-teal hover:underline mt-1">
+                  Change image
+                </button>
+              </div>
             )}
-            <input
-              type="file"
-              accept="image/*"
-              onChange={(e) => e.target.files?.[0] && handleImageUpload(e.target.files[0])}
-              className="text-sm"
-            />
-            {uploading && <span className="block text-xs text-brown/50 mt-1">Uploading…</span>}
+            {!form.image_url && (
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                onChange={(e) => e.target.files?.[0] && handleImageUpload(e.target.files[0])}
+                className="text-sm"
+              />
+            )}
+            <span className="block text-xs text-brown/40 mt-1">JPG, PNG or WebP, up to 5MB</span>
           </label>
           <div className="flex flex-wrap gap-5">
             <label className="flex items-center gap-2 text-sm text-brown">
@@ -227,8 +270,8 @@ export default function AdminProductsPage() {
           {error && <p className="text-sm text-red-700">{error}</p>}
 
           <div className="flex gap-3">
-            <button type="submit" disabled={saving} className="btn-primary disabled:opacity-50">
-              {saving ? "Saving…" : "Save"}
+            <button type="submit" disabled={saving || uploading} className="btn-primary disabled:opacity-50">
+              {saving ? "Saving…" : uploading ? "Waiting for upload…" : "Save"}
             </button>
             <button type="button" onClick={() => setShowForm(false)} className="text-brown/60 text-sm">
               Cancel
