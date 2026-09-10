@@ -2,13 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/requireAdmin";
 import { DEFAULT_STAFF_PASSWORD } from "@/lib/staffDefaults";
 
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
-=======
-
->>>>>>> a3626bea2327b444c966850b0fcc1e2d0793cfb2
->>>>>>> 3e8e4e50a379db1f971ec26ddb68bdad3757d854
 export async function POST(req: NextRequest) {
   const auth = await requireAdmin(req);
   if (!auth.ok) {

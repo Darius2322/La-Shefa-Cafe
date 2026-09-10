@@ -80,14 +80,7 @@ export default function AdminProductsPage() {
 
   function startNew() {
     setForm(EMPTY_FORM);
-<<<<<<< HEAD
     setUploadPreview(null);
-=======
-<<<<<<< HEAD
-    setUploadPreview(null);
-=======
->>>>>>> a3626bea2327b444c966850b0fcc1e2d0793cfb2
->>>>>>> 3e8e4e50a379db1f971ec26ddb68bdad3757d854
     setShowForm(true);
   }
 
@@ -103,10 +96,6 @@ export default function AdminProductsPage() {
       is_featured: p.is_featured,
       is_hidden: p.is_hidden
     });
-<<<<<<< HEAD
-    setUploadPreview(null);
-=======
-<<<<<<< HEAD
     setUploadPreview(null);
     setShowForm(true);
   }
@@ -133,43 +122,11 @@ export default function AdminProductsPage() {
     setUploadPreview({ name: file.name, size: `${Math.round(file.size / 1024)} KB` });
     setUploading(true);
 
-=======
->>>>>>> 3e8e4e50a379db1f971ec26ddb68bdad3757d854
-    setShowForm(true);
-  }
-
-  const [uploadPreview, setUploadPreview] = useState<{ name: string; size: string } | null>(null);
-
-  async function handleImageUpload(file: File) {
-    setError(null);
-<<<<<<< HEAD
-
-    const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
-    if (!allowedTypes.includes(file.type)) {
-      setError("Please choose a JPG, PNG or WebP image.");
-      return;
-    }
-    const maxBytes = 5 * 1024 * 1024;
-    if (file.size > maxBytes) {
-      setError("That image is too large — please use a file under 5MB.");
-      return;
-    }
-
-    // Show an instant local preview and file details before the network upload finishes.
-    const localPreviewUrl = URL.createObjectURL(file);
-    setForm((f) => ({ ...f, image_url: localPreviewUrl }));
-    setUploadPreview({ name: file.name, size: `${Math.round(file.size / 1024)} KB` });
-    setUploading(true);
-
-=======
->>>>>>> a3626bea2327b444c966850b0fcc1e2d0793cfb2
->>>>>>> 3e8e4e50a379db1f971ec26ddb68bdad3757d854
     const ext = file.name.split(".").pop();
     const path = `products/${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`;
 
     const { error: uploadErr } = await supabase.storage.from("product-images").upload(path, file, {
       cacheControl: "3600",
-<<<<<<< HEAD
       upsert: false,
       contentType: file.type
     });
@@ -179,25 +136,6 @@ export default function AdminProductsPage() {
         ? "You don't have permission to upload product images. Ask an admin to grant you the products.manage permission."
         : "Couldn't upload the image — check your connection and try again.";
       setError(reason);
-=======
-<<<<<<< HEAD
-      upsert: false,
-      contentType: file.type
-    });
-
-    if (uploadErr) {
-      const reason = uploadErr.message?.toLowerCase().includes("permission") || uploadErr.message?.toLowerCase().includes("policy")
-        ? "You don't have permission to upload product images. Ask an admin to grant you the products.manage permission."
-        : "Couldn't upload the image — check your connection and try again.";
-      setError(reason);
-=======
-      upsert: false
-    });
-
-    if (uploadErr) {
-      setError("Couldn't upload the image. Please try again.");
->>>>>>> a3626bea2327b444c966850b0fcc1e2d0793cfb2
->>>>>>> 3e8e4e50a379db1f971ec26ddb68bdad3757d854
       setUploading(false);
       return;
     }
@@ -207,20 +145,11 @@ export default function AdminProductsPage() {
     setUploading(false);
   }
 
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
->>>>>>> 3e8e4e50a379db1f971ec26ddb68bdad3757d854
   function clearImage() {
     setForm((f) => ({ ...f, image_url: "" }));
     setUploadPreview(null);
   }
 
-<<<<<<< HEAD
-=======
-=======
->>>>>>> a3626bea2327b444c966850b0fcc1e2d0793cfb2
->>>>>>> 3e8e4e50a379db1f971ec26ddb68bdad3757d854
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
@@ -299,10 +228,6 @@ export default function AdminProductsPage() {
           <label className="block">
             <span className="block text-sm font-medium text-brown mb-1">Photo</span>
             {form.image_url && (
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
->>>>>>> 3e8e4e50a379db1f971ec26ddb68bdad3757d854
               <div className="mb-2">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={form.image_url} alt="Product" className="w-32 h-32 object-cover rounded-sm border border-brown/10" />
@@ -316,7 +241,6 @@ export default function AdminProductsPage() {
                   Change image
                 </button>
               </div>
-<<<<<<< HEAD
             )}
             {!form.image_url && (
               <input
@@ -327,30 +251,6 @@ export default function AdminProductsPage() {
               />
             )}
             <span className="block text-xs text-brown/40 mt-1">JPG, PNG or WebP, up to 5MB</span>
-=======
-            )}
-            {!form.image_url && (
-              <input
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                onChange={(e) => e.target.files?.[0] && handleImageUpload(e.target.files[0])}
-                className="text-sm"
-              />
-            )}
-            <span className="block text-xs text-brown/40 mt-1">JPG, PNG or WebP, up to 5MB</span>
-=======
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={form.image_url} alt="Product" className="w-32 h-32 object-cover rounded-sm mb-2 border border-brown/10" />
-            )}
-            <input
-              type="file"
-              accept="image/*"
-              onChange={(e) => e.target.files?.[0] && handleImageUpload(e.target.files[0])}
-              className="text-sm"
-            />
-            {uploading && <span className="block text-xs text-brown/50 mt-1">Uploading…</span>}
->>>>>>> a3626bea2327b444c966850b0fcc1e2d0793cfb2
->>>>>>> 3e8e4e50a379db1f971ec26ddb68bdad3757d854
           </label>
           <div className="flex flex-wrap gap-5">
             <label className="flex items-center gap-2 text-sm text-brown">
@@ -370,18 +270,8 @@ export default function AdminProductsPage() {
           {error && <p className="text-sm text-red-700">{error}</p>}
 
           <div className="flex gap-3">
-<<<<<<< HEAD
             <button type="submit" disabled={saving || uploading} className="btn-primary disabled:opacity-50">
               {saving ? "Saving…" : uploading ? "Waiting for upload…" : "Save"}
-=======
-<<<<<<< HEAD
-            <button type="submit" disabled={saving || uploading} className="btn-primary disabled:opacity-50">
-              {saving ? "Saving…" : uploading ? "Waiting for upload…" : "Save"}
-=======
-            <button type="submit" disabled={saving} className="btn-primary disabled:opacity-50">
-              {saving ? "Saving…" : "Save"}
->>>>>>> a3626bea2327b444c966850b0fcc1e2d0793cfb2
->>>>>>> 3e8e4e50a379db1f971ec26ddb68bdad3757d854
             </button>
             <button type="button" onClick={() => setShowForm(false)} className="text-brown/60 text-sm">
               Cancel
