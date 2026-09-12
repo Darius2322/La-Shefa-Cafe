@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { useCart } from "./CartProvider";
 
 const BASE_LINKS = [
+  { href: "/", label: "Home" },
   { href: "/menu", label: "Menu" },
   { href: "/cakes", label: "Cakes" },
   { href: "/booking", label: "Booking", requiresFlag: "booking" as const },
@@ -36,7 +37,10 @@ export function Navbar({ bookingEnabled = true }: { bookingEnabled?: boolean }) 
       <div className="container-lsc flex items-center justify-between py-3">
         <Link href="/" className="flex items-center gap-3" aria-label="La Shefa Cafe home">
           <Image src="/logo.jpg" alt="La Shefa Cafe" width={44} height={44} className="rounded-sm" />
-          <span className="font-display text-lg text-teal hidden sm:block">La Shefa Cafe</span>
+          <span className="hidden sm:block">
+            <span className="block font-display text-lg text-teal leading-tight">La Shefa Cafe</span>
+            <span className="block text-[11px] text-brown/50 italic leading-tight">Eat quality, stay healthy</span>
+          </span>
         </Link>
 
         <nav className="hidden md:flex items-center gap-6 font-body text-[15px] text-brown">
@@ -63,12 +67,12 @@ export function Navbar({ bookingEnabled = true }: { bookingEnabled?: boolean }) 
             )}
           </Link>
           <button
-            className="md:hidden text-brown p-1"
+            className="md:hidden flex items-center justify-center w-10 h-10 rounded-sm bg-teal text-cream flex-shrink-0"
             aria-label="Open menu"
             aria-expanded={open}
             onClick={() => setOpen(true)}
           >
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <line x1="3" y1="6" x2="21" y2="6" />
               <line x1="3" y1="12" x2="21" y2="12" />
               <line x1="3" y1="18" x2="21" y2="18" />

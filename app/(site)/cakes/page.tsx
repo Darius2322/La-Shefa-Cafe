@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { DatePicker, TimePicker } from "@/components/DateTimePicker";
 
 const CAKE_TYPES = ["Birthday", "Wedding", "Anniversary", "Graduation", "Custom"];
 
@@ -158,12 +159,17 @@ export default function CakesPage() {
         </Field>
 
         <div className="grid sm:grid-cols-2 gap-4">
-          <Field label="Collection / delivery date">
-            <input type="date" value={form.collection_date} onChange={(e) => update("collection_date", e.target.value)} className="input" />
-          </Field>
-          <Field label="Preferred time">
-            <input value={form.preferred_time} onChange={(e) => update("preferred_time", e.target.value)} className="input" />
-          </Field>
+          <DatePicker
+            label="Collection / delivery date"
+            value={form.collection_date}
+            onChange={(v) => update("collection_date", v)}
+            minDate={new Date()}
+          />
+          <TimePicker
+            label="Preferred time"
+            value={form.preferred_time}
+            onChange={(v) => update("preferred_time", v)}
+          />
         </div>
 
         <Field label="Special instructions">

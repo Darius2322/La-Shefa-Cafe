@@ -1,21 +1,22 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useCart } from "@/components/CartProvider";
 import { supabase } from "@/lib/supabase";
+import { getShopLocation, mapsUrlFromLocation } from "@/lib/settings";
+import { DatePicker, TimePicker } from "@/components/DateTimePicker";
 
-type Step = "order" | "details";
+type Step = "order" | "details" | "confirmation";
 type Contact = { phone?: string; whatsapp?: string; address?: string };
 
 export default function CheckoutPage() {
   const { lines, subtotal, updateQuantity, removeItem, clear } = useCart();
-  const router = useRouter();
 
   const [step, setStep] = useState<Step>("order");
   const [fulfillment, setFulfillment] = useState<"pickup" | "delivery">("pickup");
-  const [scheduledFor, setScheduledFor] = useState("");
+  const [scheduledDate, setScheduledDate] = useState("");
+  const [scheduledTime, setScheduledTime] = useState("");
   const [contact, setContact] = useState<Contact>({});
 
   const [deliveryAddress, setDeliveryAddress] = useState("");
@@ -29,14 +30,21 @@ export default function CheckoutPage() {
   const [instructions, setInstructions] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [placedOrder, setPlacedOrder] = useState<{ order_number: string; phone: string; total: number; itemLines: typeof lines } | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [pickupMapsUrl, setPickupMapsUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    supabase
-      .from("site_settings")
-      .select("value")
-      .eq("key", "contact")
-      .maybeSingle()
-      .then(({ data }) => setContact(data?.value ?? {}));
+    async function load() {
+      const [{ data: contactData }, loc] = await Promise.all([
+        supabase.from("site_settings").select("value").eq("key", "contact").maybeSingle(),
+        getShopLocation()
+      ]);
+      const contactValue = contactData?.value ?? {};
+      setContact(contactValue);
+      setPickupMapsUrl(mapsUrlFromLocation(loc, contactValue.address ?? null));
+    }
+    load();
   }, []);
 
   const canContinue =
@@ -51,8 +59,25 @@ export default function CheckoutPage() {
     setLocating(true);
     setLocationError(null);
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setDeliveryCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+      async (pos) => {
+        const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        setDeliveryCoords(coords);
+
+        // Reverse-geocode via OpenStreetMap's free Nominatim service to suggest an
+        // address — the customer can still edit it, this is just a head start.
+        try {
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${coords.lat}&lon=${coords.lng}`,
+            { headers: { Accept: "application/json" } }
+          );
+          const json = await res.json();
+          if (json?.display_name) {
+            setDeliveryAddress((prev) => prev.trim() ? prev : json.display_name);
+          }
+        } catch {
+          // Silent fallback — coordinates are already captured, address is optional here.
+        }
+
         setLocating(false);
       },
       () => {
@@ -62,10 +87,6 @@ export default function CheckoutPage() {
       { enableHighAccuracy: true, timeout: 10000 }
     );
   }
-
-  const pickupMapsUrl = contact.address
-    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(contact.address)}`
-    : null;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -98,7 +119,7 @@ export default function CheckoutPage() {
           customer_name: name.trim(),
           customer_phone: phone.trim(),
           fulfillment_type: fulfillment,
-          scheduled_for: scheduledFor ? new Date(scheduledFor).toISOString() : null,
+          scheduled_for: scheduledDate && scheduledTime ? new Date(`${scheduledDate}T${scheduledTime}`).toISOString() : null,
           subtotal,
           total: subtotal,
           special_instructions: instructions.trim() || null,
@@ -123,9 +144,8 @@ export default function CheckoutPage() {
       if (itemsErr) throw itemsErr;
 
       clear();
-      router.push(
-        `/confirmation/${order.order_number}?phone=${encodeURIComponent(phone.trim())}`
-      );
+      setPlacedOrder({ order_number: order.order_number, phone: phone.trim(), total: subtotal, itemLines: lines });
+      setStep("confirmation");
     } catch (err: any) {
       setError("Something went wrong placing your order. Please try again.");
       console.error(err);
@@ -139,12 +159,64 @@ export default function CheckoutPage() {
       <h1 className="font-display text-4xl text-brown mb-2">Checkout</h1>
 
       <div className="flex items-center gap-3 mb-10 text-sm">
-        <StepPill active={step === "order"} done={step === "details"} label="1. Order" />
+        <StepPill active={step === "order"} done={step === "details" || step === "confirmation"} label="1. Order" />
         <span className="h-px w-8 bg-brown/20" />
-        <StepPill active={step === "details"} done={false} label="2. Your details" />
+        <StepPill active={step === "details"} done={step === "confirmation"} label="2. Your details" />
+        <span className="h-px w-8 bg-brown/20" />
+        <StepPill active={step === "confirmation"} done={false} label="3. Confirmation" />
       </div>
 
-      {lines.length === 0 && step === "order" ? (
+      {step === "confirmation" && placedOrder ? (
+        <div className="max-w-xl">
+          <p className="text-caramel font-medium mb-2">Order placed</p>
+          <h2 className="font-display text-3xl text-brown mb-8">Thank you!</h2>
+
+          <div className="border border-brown/15 rounded-sm p-6 mb-8">
+            <p className="text-sm text-brown/60 mb-1">Your order number</p>
+            <div className="flex items-center justify-between gap-4">
+              <p className="font-display text-2xl text-teal">{placedOrder.order_number}</p>
+              <button
+                onClick={async () => {
+                  await navigator.clipboard.writeText(placedOrder.order_number);
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 1500);
+                }}
+                className="btn-primary !py-2 !px-4 text-sm"
+              >
+                {copied ? "Copied" : "Copy"}
+              </button>
+            </div>
+          </div>
+
+          <div className="divider pt-4 mb-6">
+            <p className="text-sm text-brown/60 mb-2">Items</p>
+            <ul className="space-y-1 mb-4">
+              {placedOrder.itemLines.map((l) => (
+                <li key={l.product_id} className="flex justify-between text-sm text-brown">
+                  <span>{l.quantity} × {l.product_name}</span>
+                  <span>KSh {(l.quantity * l.unit_price).toLocaleString()}</span>
+                </li>
+              ))}
+            </ul>
+            <div className="flex justify-between font-semibold text-brown">
+              <span>Total</span>
+              <span>KSh {placedOrder.total.toLocaleString()}</span>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-4">
+            <Link
+              href={`/track?order=${placedOrder.order_number}&phone=${encodeURIComponent(placedOrder.phone)}`}
+              className="btn-primary"
+            >
+              Track this order
+            </Link>
+            <Link href="/menu" className="btn-outline !text-brown !border-brown/30">
+              Order more
+            </Link>
+          </div>
+        </div>
+      ) : lines.length === 0 && step === "order" ? (
         <div className="border border-dashed border-brown/25 rounded-sm p-10 text-center">
           <p className="font-display text-xl text-brown mb-2">Your cart is empty</p>
           <Link href="/menu" className="text-teal font-medium hover:underline">
@@ -267,17 +339,19 @@ export default function CheckoutPage() {
               </div>
             )}
 
-            <label className="block mt-6">
-              <span className="block text-sm font-medium text-brown mb-1">
-                Preferred date &amp; time (optional)
-              </span>
-              <input
-                type="datetime-local"
-                value={scheduledFor}
-                onChange={(e) => setScheduledFor(e.target.value)}
-                className="input"
+            <div className="mt-6 grid sm:grid-cols-2 gap-4">
+              <DatePicker
+                label="Preferred date (optional)"
+                value={scheduledDate}
+                onChange={setScheduledDate}
+                minDate={new Date()}
               />
-            </label>
+              <TimePicker
+                label="Preferred time (optional)"
+                value={scheduledTime}
+                onChange={setScheduledTime}
+              />
+            </div>
           </section>
 
           <button

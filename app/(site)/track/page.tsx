@@ -1,12 +1,20 @@
 "use client";
 
 import { Suspense, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { useCart } from "@/components/CartProvider";
 
 const STEPS = ["received", "confirmed", "preparing", "ready", "out_for_delivery", "completed"];
 
 type StatusEntry = { status: string; changed_at: string };
+type PastOrder = {
+  order_number: string;
+  status: string;
+  total: number;
+  created_at: string;
+  items: { product_id: string | null; name: string; quantity: number; unit_price: number }[];
+};
 type TrackResult = {
   order_number: string;
   customer_name: string;
@@ -56,10 +64,29 @@ export default function TrackPage() {
 
 function TrackPageInner() {
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const { addItem } = useCart();
   const [orderNumber, setOrderNumber] = useState(searchParams.get("order") ?? "");
   const [phone, setPhone] = useState(searchParams.get("phone") ?? "");
   const [result, setResult] = useState<TrackResult | null | "not_found">(null);
   const [loading, setLoading] = useState(false);
+  const [pastOrders, setPastOrders] = useState<PastOrder[]>([]);
+
+  async function loadPastOrders(phoneNumber: string) {
+    const { data } = await supabase.rpc("track_orders_by_phone", { p_phone: phoneNumber });
+    setPastOrders((data as PastOrder[]) ?? []);
+  }
+
+  function reorder(order: PastOrder) {
+    order.items.forEach((it) => {
+      if (!it.product_id) return;
+      addItem(
+        { product_id: it.product_id, product_name: it.name, unit_price: it.unit_price },
+        it.quantity
+      );
+    });
+    router.push("/checkout");
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -75,6 +102,7 @@ function TrackPageInner() {
       return;
     }
     setResult(data[0]);
+    loadPastOrders(phone.trim());
   }
 
   const activeIndex = result && result !== "not_found" ? STEPS.indexOf(result.status) : -1;
@@ -199,6 +227,29 @@ function TrackPageInner() {
               <span>KSh {Number(result.total).toLocaleString()}</span>
             </div>
           </div>
+
+          {pastOrders.length > 1 && (
+            <div className="divider pt-8 mt-8">
+              <p className="font-display text-xl text-brown mb-4">Your Previous Orders</p>
+              <div className="space-y-3">
+                {pastOrders
+                  .filter((o) => o.order_number !== result.order_number)
+                  .map((o) => (
+                    <div key={o.order_number} className="flex items-center justify-between gap-3 border border-brown/10 rounded-sm p-3">
+                      <div>
+                        <p className="text-sm font-medium text-teal">{o.order_number}</p>
+                        <p className="text-xs text-brown/50">
+                          {new Date(o.created_at).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })} · KSh {Number(o.total).toLocaleString()}
+                        </p>
+                      </div>
+                      <button onClick={() => reorder(o)} className="text-sm text-caramel font-medium hover:underline whitespace-nowrap">
+                        Order Again
+                      </button>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -1,19 +1,20 @@
 import Image from "next/image";
 import { supabase } from "@/lib/supabase";
 import { OrderCta } from "@/components/OrderCta";
+import { getShopLocation, mapsUrlFromLocation } from "@/lib/settings";
 
 export const revalidate = 60;
 export const metadata = { title: "Contact — La Shefa Cafe" };
 
 export default async function ContactPage() {
-  const { data } = await supabase
-    .from("site_settings")
-    .select("*")
-    .eq("key", "contact")
-    .maybeSingle();
+  const [{ data }, location] = await Promise.all([
+    supabase.from("site_settings").select("*").eq("key", "contact").maybeSingle(),
+    getShopLocation()
+  ]);
 
   const contact = data?.value ?? null;
   const hasContactInfo = contact && Object.values(contact).some((v) => typeof v === "string" && v.trim());
+  const mapsUrl = mapsUrlFromLocation(location, contact?.address ?? null);
 
   return (
     <div>
@@ -44,6 +45,11 @@ export default async function ContactPage() {
             {contact.whatsapp && <p>WhatsApp: {contact.whatsapp}</p>}
             {contact.email && <p>Email: {contact.email}</p>}
             {contact.address && <p>Address: {contact.address}</p>}
+            {mapsUrl && (
+              <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="inline-block text-teal font-medium hover:underline">
+                View on Google Maps →
+              </a>
+            )}
           </div>
           {contact.hours && (
             <div>

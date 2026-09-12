@@ -121,9 +121,28 @@ export default function AdminStaffPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="font-display text-3xl text-brown">Staff</h1>
-        <button onClick={() => setShowForm(true)} className="btn-primary">Add Staff</button>
+      <h1 className="font-display text-3xl text-brown mb-2">Staff</h1>
+      <p className="text-xs text-brown/50 mb-6">
+        Default password for new staff and resets: <code className="bg-brown/5 px-1.5 py-0.5 rounded">Staff@lsc321</code> — staff should change it after first login.
+      </p>
+
+      <div className="flex flex-wrap gap-1 border-b border-brown/15 mb-8">
+        <button
+          onClick={() => setShowForm(false)}
+          className={`px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
+            !showForm ? "border-teal text-teal" : "border-transparent text-brown/50 hover:text-brown"
+          }`}
+        >
+          Team
+        </button>
+        <button
+          onClick={() => setShowForm(true)}
+          className={`px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
+            showForm ? "border-teal text-teal" : "border-transparent text-brown/50 hover:text-brown"
+          }`}
+        >
+          Add Staff
+        </button>
       </div>
 
       {notice && (
@@ -132,10 +151,6 @@ export default function AdminStaffPage() {
           <button onClick={() => setNotice(null)} className="text-caramel text-sm">Dismiss</button>
         </div>
       )}
-
-      <p className="text-xs text-brown/50 mb-6">
-        Default password for new staff and resets: <code className="bg-brown/5 px-1.5 py-0.5 rounded">Staff@lsc321</code> — staff should change it after first login.
-      </p>
 
       {showForm && (
         <form onSubmit={handleCreate} className="bg-white border border-brown/10 rounded-sm p-6 mb-8 space-y-4 max-w-xl">
@@ -196,7 +211,7 @@ export default function AdminStaffPage() {
 
       {loading ? (
         <p className="text-brown/50 text-sm">Loading…</p>
-      ) : (
+      ) : !showForm ? (
         <div className="space-y-3">
           {staff.map((s) => (
             <div key={s.id} className="bg-white border border-brown/10 rounded-sm p-4">
@@ -248,7 +263,7 @@ export default function AdminStaffPage() {
             </div>
           ))}
         </div>
-      )}
+      ) : null}
 
       <style>{`
         .input { width: 100%; border: 1px solid rgba(65,29,13,0.2); border-radius: 4px; padding: 0.6rem 0.8rem; background: white; color: #2C1409; font-size: 0.95rem; }

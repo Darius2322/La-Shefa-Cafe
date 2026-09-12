@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { DatePicker, TimePicker } from "@/components/DateTimePicker";
 
 type Step = "when" | "details";
 
@@ -71,12 +72,17 @@ export function BookingForm() {
       {step === "when" ? (
         <div className="space-y-6">
           <div className="grid sm:grid-cols-2 gap-4">
-            <Field label="Date" required>
-              <input required type="date" value={form.booking_date} onChange={(e) => update("booking_date", e.target.value)} className="input" />
-            </Field>
-            <Field label="Time" required>
-              <input required type="time" value={form.booking_time} onChange={(e) => update("booking_time", e.target.value)} className="input" />
-            </Field>
+            <DatePicker
+              label="Date *"
+              value={form.booking_date}
+              onChange={(v) => update("booking_date", v)}
+              minDate={new Date()}
+            />
+            <TimePicker
+              label="Time *"
+              value={form.booking_time}
+              onChange={(v) => update("booking_time", v)}
+            />
           </div>
 
           <div>

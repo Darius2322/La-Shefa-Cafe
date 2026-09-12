@@ -9,8 +9,9 @@ import { supabase } from "@/lib/supabase";
 const NAV = [
   { href: "/adminlsc", label: "Dashboard", icon: "grid", permission: null },
   { href: "/adminlsc/orders", label: "Orders", icon: "receipt", permission: "orders.view" },
+  { href: "/adminlsc/sales", label: "Sales", icon: "chart", permission: "reports.view" },
   { href: "/adminlsc/pos", label: "Mini POS", icon: "cart", permission: "pos.use" },
-  { href: "/adminlsc/products", label: "Products", icon: "box", permission: "products.manage" },
+  { href: "/adminlsc/products", label: "Menu", icon: "box", permission: "products.manage" },
   { href: "/adminlsc/bookings", label: "Bookings", icon: "calendar", permission: "bookings.manage" },
   { href: "/adminlsc/cakes", label: "Cake Requests", icon: "cake", permission: "cakes.manage" },
   { href: "/adminlsc/offers", label: "Offers", icon: "tag", permission: "reviews.manage" },

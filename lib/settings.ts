@@ -17,6 +17,8 @@ const DEFAULT_FLAGS: FeatureFlags = {
   booking_enabled: true
 };
 
+export type ShopLocation = { lat: number | null; lng: number | null };
+
 const DEFAULT_SOCIAL: SocialLinks = {
   facebook: "",
   instagram: "",
@@ -25,6 +27,27 @@ const DEFAULT_SOCIAL: SocialLinks = {
   youtube: "",
   whatsapp: ""
 };
+
+export function mapsUrlFromLocation(loc: ShopLocation, fallbackAddress?: string | null): string | null {
+  if (loc.lat != null && loc.lng != null) {
+    return `https://www.google.com/maps/search/?api=1&query=${loc.lat},${loc.lng}`;
+  }
+  if (fallbackAddress) {
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fallbackAddress)}`;
+  }
+  return null;
+}
+
+export async function getShopLocation(): Promise<ShopLocation> {
+  const { data } = await supabase
+    .from("site_settings")
+    .select("value")
+    .eq("key", "location")
+    .maybeSingle();
+
+  if (!data?.value) return { lat: null, lng: null };
+  return { lat: data.value.lat ?? null, lng: data.value.lng ?? null };
+}
 
 export async function getFeatureFlags(): Promise<FeatureFlags> {
   const { data } = await supabase

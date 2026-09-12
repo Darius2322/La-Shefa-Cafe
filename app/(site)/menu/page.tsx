@@ -2,7 +2,8 @@ import { supabase } from "@/lib/supabase";
 import { MenuBrowser } from "@/components/MenuBrowser";
 import type { Category, Product } from "@/lib/types";
 
-export const revalidate = 30;
+export const revalidate = 0;
+export const dynamic = "force-dynamic";
 export const metadata = { title: "Menu — La Shefa Cafe" };
 
 async function getMenuData() {
