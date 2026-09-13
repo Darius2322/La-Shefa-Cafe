@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { Menu, X, Bell, PanelLeftClose, PanelLeft, LogOut } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 const NAV = [
@@ -219,15 +220,14 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             {staff?.full_name} · <span className="capitalize">{staff?.role}</span>
           </p>
         )}
-        <button onClick={handleLogout} className="text-sm text-caramel hover:underline">
+        <button onClick={handleLogout} className={`text-sm text-caramel hover:underline flex items-center gap-1.5 ${collapsed && !isMobile ? "justify-center" : ""}`}>
           {collapsed && !isMobile ? (
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" className="w-5 h-5 mx-auto">
-              <path d="M15 4H6.5a1.5 1.5 0 0 0-1.5 1.5v13A1.5 1.5 0 0 0 6.5 20H15" />
-              <line x1="20" y1="12" x2="10" y2="12" />
-              <path d="M16 8l4 4-4 4" />
-            </svg>
+            <LogOut size={18} strokeWidth={1.75} className="mx-auto" />
           ) : (
-            "Log out"
+            <>
+              <LogOut size={14} strokeWidth={1.75} />
+              Log out
+            </>
           )}
         </button>
         {(!collapsed || isMobile) && (
@@ -263,10 +263,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
               aria-label="Close menu"
               className="absolute top-4 right-4 text-cream/80 hover:text-cream p-1 z-10"
             >
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                <line x1="5" y1="5" x2="19" y2="19" />
-                <line x1="19" y1="5" x2="5" y2="19" />
-              </svg>
+              <X size={22} strokeWidth={1.8} />
             </button>
             {sidebarContent(true)}
           </div>
@@ -287,22 +284,14 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
               aria-label="Open sidebar"
               onClick={() => setMobileOpen(true)}
             >
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
-                <line x1="3" y1="6" x2="21" y2="6" />
-                <line x1="3" y1="12" x2="21" y2="12" />
-                <line x1="3" y1="18" x2="21" y2="18" />
-              </svg>
+              <Menu size={22} strokeWidth={1.75} />
             </button>
             <button
               className="hidden md:inline-flex text-brown/60 hover:text-brown p-1"
               aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
               onClick={() => setCollapsed((v) => !v)}
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
-                <line x1="3" y1="6" x2="21" y2="6" />
-                <line x1="3" y1="12" x2="21" y2="12" />
-                <line x1="3" y1="18" x2="21" y2="18" />
-              </svg>
+              {collapsed ? <PanelLeft size={19} strokeWidth={1.75} /> : <PanelLeftClose size={19} strokeWidth={1.75} />}
             </button>
             <p className="font-display text-lg md:hidden">La Shefa Cafe</p>
           </div>
@@ -313,10 +302,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
               aria-label="Notifications"
               className="relative p-1.5"
             >
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
-                <path d="M6 9a6 6 0 0 1 12 0v5l1.8 2.5H4.2L6 14z" />
-                <path d="M10 20a2 2 0 0 0 4 0" />
-              </svg>
+              <Bell size={20} strokeWidth={1.75} />
               {totalNotifs > 0 && (
                 <span className="absolute -top-0.5 -right-0.5 bg-caramel text-brown text-[10px] font-bold rounded-full h-4 w-4 flex items-center justify-center">
                   {totalNotifs > 9 ? "9+" : totalNotifs}

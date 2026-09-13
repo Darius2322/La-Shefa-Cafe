@@ -12,8 +12,8 @@ export default async function PrivacyPage() {
     .maybeSingle();
 
   return (
-    <div className="container-lsc py-16 max-w-prose">
-      <h1 className="font-display text-4xl text-brown mb-4">Privacy Policy</h1>
+    <div className="container-lsc py-12 sm:py-16 max-w-prose">
+      <h1 className="font-display text-display-lg text-brown mb-4">Privacy Policy</h1>
       {!data ? (
         <p className="text-brown/60 text-sm">Privacy policy has not been published yet.</p>
       ) : (

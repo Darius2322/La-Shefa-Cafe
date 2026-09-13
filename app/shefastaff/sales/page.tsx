@@ -53,17 +53,17 @@ export default function StaffSalesPage() {
 
   return (
     <div>
-      <h1 className="font-display text-3xl text-brown mb-2">Sales</h1>
+      <h1 className="font-display text-display-md text-brown mb-2">Sales</h1>
       <p className="text-sm text-brown/50 mb-8">POS sales, based on actual completed transactions.</p>
 
-      <div className="grid sm:grid-cols-2 gap-5 mb-10">
-        <div className="bg-white border border-brown/10 rounded-sm p-5">
-          <p className="text-sm text-brown/60 mb-1">Today</p>
+      <div className="grid grid-cols-2 gap-3 sm:gap-5 mb-8 sm:mb-10">
+        <div className="bg-white border border-brown/10 rounded-sm p-4 sm:p-5">
+          <p className="text-xs sm:text-sm text-brown/60 mb-1">Today</p>
           <p className="font-display text-2xl text-brown">KSh {today.revenue.toLocaleString()}</p>
           <p className="text-xs text-brown/50">{today.count} sale{today.count === 1 ? "" : "s"}</p>
         </div>
-        <div className="bg-white border border-brown/10 rounded-sm p-5">
-          <p className="text-sm text-brown/60 mb-1">This Week</p>
+        <div className="bg-white border border-brown/10 rounded-sm p-4 sm:p-5">
+          <p className="text-xs sm:text-sm text-brown/60 mb-1">This Week</p>
           <p className="font-display text-2xl text-brown">KSh {thisWeek.revenue.toLocaleString()}</p>
           <p className="text-xs text-brown/50">{thisWeek.count} sale{thisWeek.count === 1 ? "" : "s"}</p>
         </div>

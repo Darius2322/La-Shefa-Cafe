@@ -1,8 +1,37 @@
 import Link from "next/link";
 import Image from "next/image";
+import {
+  ArrowRight,
+  Leaf,
+  Clock3,
+  CakeSlice,
+  Users,
+  CalendarCheck,
+  Star,
+  Tag,
+  Gift,
+  Heart,
+  Sparkles
+} from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { getFeatureFlags } from "@/lib/settings";
+import { Reveal } from "@/components/Reveal";
 import type { Product } from "@/lib/types";
+
+const WHY_ITEMS = [
+  { label: "Quality Ingredients", icon: Leaf },
+  { label: "Freshly Prepared", icon: Clock3 },
+  { label: "Delicious Cakes", icon: CakeSlice },
+  { label: "Friendly Service", icon: Users },
+  { label: "Convenient Booking", icon: CalendarCheck }
+];
+
+const CAKE_TYPES = [
+  { label: "Birthday", icon: Gift },
+  { label: "Wedding", icon: Heart },
+  { label: "Anniversary", icon: Sparkles },
+  { label: "Custom", icon: CakeSlice }
+];
 
 export const revalidate = 60;
 
@@ -61,79 +90,106 @@ export default async function HomePage() {
           })
         }}
       />
-      {/* Hero */}
+      {/* Hero — text-led, on-brand teal ground with a subtle warm texture rather
+          than a generic stock photo. When a real featured product photo exists
+          it's shown as the visual anchor (actual La Shefa imagery); otherwise
+          the layout stands on typography and the logo alone. */}
       <section className="relative bg-teal text-cream overflow-hidden">
-        <div className="absolute inset-0">
-          <Image
-            src="https://source.unsplash.com/1600x900/?coffee,cafe"
-            alt=""
-            fill
-            priority
-            className="object-cover opacity-25"
-          />
-          <div className="absolute inset-0 bg-teal/85" />
-        </div>
-        <div className="container-lsc py-20 md:py-28 grid md:grid-cols-2 gap-12 items-center relative">
+        <div
+          className="absolute inset-0 opacity-[0.07]"
+          style={{
+            backgroundImage:
+              "radial-gradient(circle at 1px 1px, #F8F4EE 1px, transparent 0)",
+            backgroundSize: "28px 28px"
+          }}
+          aria-hidden
+        />
+        <div className="container-lsc py-14 sm:py-20 md:py-24 grid md:grid-cols-2 gap-10 md:gap-12 items-center relative">
           <div>
-            <p className="font-body text-caramel text-sm tracking-wide mb-4">La Shefa Cafe</p>
-            <h1 className="font-display italic text-4xl md:text-5xl leading-[1.1] mb-6">
+            <p className="font-body text-caramel text-xs sm:text-sm tracking-[0.15em] uppercase mb-4">
+              La Shefa Cafe
+            </p>
+            <h1 className="font-display italic text-display-lg sm:text-display-xl mb-5">
               Eat quality. Stay healthy.
             </h1>
-            <p className="text-cream/80 text-lg max-w-md mb-8 font-body">
+            <p className="text-cream/80 text-base sm:text-lg max-w-md mb-7 font-body leading-relaxed">
               Fresh café meals, hand-pulled coffee, and cakes made to order — from our kitchen
               to your table.
             </p>
-            <div className="flex flex-wrap gap-4">
-              <Link href="/menu" className="btn-caramel">View Menu</Link>
+            <div className="flex flex-wrap gap-3 sm:gap-4">
+              <Link href="/menu" className="btn-caramel">
+                View Menu
+                <ArrowRight size={16} strokeWidth={2} />
+              </Link>
               {flags.booking_enabled && (
                 <Link href="/booking" className="btn-outline">Book Now</Link>
               )}
               <Link href="/track" className="btn-outline">Track Order</Link>
             </div>
           </div>
-          <div className="flex justify-center">
-            <Image
-              src="/logo.jpg"
-              alt="La Shefa Cafe logo"
-              width={340}
-              height={340}
-              priority
-              className="rounded-md"
-            />
+          <div className="flex justify-center md:justify-end">
+            {featured[0]?.image_url ? (
+              <div className="relative w-full max-w-sm aspect-square rounded-md overflow-hidden shadow-soft-lg border border-cream/10">
+                <Image
+                  src={featured[0].image_url}
+                  alt={featured[0].name}
+                  fill
+                  priority
+                  className="object-cover"
+                />
+                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-brown-dark/80 to-transparent p-4">
+                  <p className="font-display text-cream text-sm">{featured[0].name}</p>
+                </div>
+              </div>
+            ) : (
+              <Image
+                src="/logo.jpg"
+                alt="La Shefa Cafe logo"
+                width={300}
+                height={300}
+                priority
+                className="rounded-md shadow-soft-lg"
+              />
+            )}
           </div>
         </div>
       </section>
 
       {/* Featured menu */}
-      <section className="container-lsc py-16">
-        <div className="flex items-baseline justify-between mb-8">
-          <h2 className="font-display text-3xl text-brown">Featured Menu</h2>
-          <Link href="/menu" className="text-teal text-sm font-medium hover:underline">
+      <section className="container-lsc py-12 sm:py-16">
+        <Reveal className="flex items-baseline justify-between mb-6 sm:mb-8">
+          <h2 className="font-display text-display-sm sm:text-display-md text-brown">Featured Menu</h2>
+          <Link href="/menu" className="text-teal text-sm font-medium hover:underline flex items-center gap-1">
             View full menu
+            <ArrowRight size={14} strokeWidth={2} />
           </Link>
-        </div>
+        </Reveal>
         {featured.length === 0 ? (
           <EmptyState
             title="The menu is being set up"
             body="Featured dishes will appear here once products are added in the admin dashboard."
           />
         ) : (
-          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-8">
-            {featured.map((p) => (
-              <div key={p.id} className="divider pt-5">
-                {p.image_url && (
-                  <div className="relative w-full aspect-[4/3] mb-4 overflow-hidden rounded-sm">
-                    <Image src={p.image_url} alt={p.name} fill className="object-cover" />
-                  </div>
-                )}
-                <h3 className="font-display text-xl text-brown">{p.name}</h3>
-                {p.description && (
-                  <p className="text-sm text-brown/70 mt-1 line-clamp-2">{p.description}</p>
-                )}
-                <p className="text-teal font-semibold mt-2">
-                  KSh {Number(p.price).toLocaleString()}
-                </p>
-              </div>
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6 lg:gap-8">
+            {featured.map((p, i) => (
+              <Reveal key={p.id} delay={i * 60}>
+                <div className="divider pt-3 sm:pt-5 card-hover rounded-sm">
+                  {p.image_url && (
+                    <div className="relative w-full aspect-square sm:aspect-[4/3] mb-3 sm:mb-4 overflow-hidden rounded-sm">
+                      <Image src={p.image_url} alt={p.name} fill className="object-cover" />
+                    </div>
+                  )}
+                  <h3 className="font-display text-base sm:text-xl text-brown leading-tight">{p.name}</h3>
+                  {p.description && (
+                    <p className="text-xs sm:text-sm text-brown/70 mt-1 line-clamp-2 hidden sm:block">
+                      {p.description}
+                    </p>
+                  )}
+                  <p className="text-teal font-semibold mt-1.5 sm:mt-2 text-sm sm:text-base">
+                    KSh {Number(p.price).toLocaleString()}
+                  </p>
+                </div>
+              </Reveal>
             ))}
           </div>
         )}
@@ -141,42 +197,49 @@ export default async function HomePage() {
 
       {/* Cakes */}
       <section className="bg-cream border-y border-brown/10">
-        <div className="container-lsc py-16 grid md:grid-cols-2 gap-12 items-center">
-          <div>
-            <h2 className="font-display text-3xl text-brown mb-4">Cakes, made to order</h2>
-            <p className="text-brown/75 mb-6 max-w-md">
+        <div className="container-lsc py-12 sm:py-16 grid md:grid-cols-2 gap-8 md:gap-12 items-center">
+          <Reveal>
+            <h2 className="font-display text-display-sm sm:text-display-md text-brown mb-3 sm:mb-4">
+              Cakes, made to order
+            </h2>
+            <p className="text-brown/75 mb-6 max-w-md text-sm sm:text-base leading-relaxed">
               Birthdays, weddings, anniversaries, or just because — tell us your flavor, size,
               and design, and we'll bake it fresh for your date.
             </p>
-            <Link href="/cakes" className="btn-primary">Request a Cake</Link>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            {["Birthday", "Wedding", "Anniversary", "Custom"].map((c) => (
-              <div key={c} className="bg-white border border-brown/10 rounded-sm p-6 text-center">
-                <p className="font-display text-lg text-brown">{c}</p>
+            <Link href="/cakes" className="btn-primary">
+              Request a Cake
+              <ArrowRight size={16} strokeWidth={2} />
+            </Link>
+          </Reveal>
+          <Reveal delay={100} className="grid grid-cols-2 gap-3 sm:gap-4">
+            {CAKE_TYPES.map(({ label, icon: Icon }) => (
+              <div
+                key={label}
+                className="bg-white border border-brown/10 rounded-sm p-5 sm:p-6 text-center card-hover"
+              >
+                <Icon size={22} strokeWidth={1.75} className="mx-auto mb-2 text-caramel" />
+                <p className="font-display text-sm sm:text-lg text-brown">{label}</p>
               </div>
             ))}
-          </div>
+          </Reveal>
         </div>
       </section>
 
       {/* Why La Shefa */}
-      <section className="container-lsc py-16">
-        <h2 className="font-display text-3xl text-brown mb-10 text-center">Why La Shefa</h2>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-8">
-          {[
-            "Quality Ingredients",
-            "Freshly Prepared",
-            "Delicious Cakes",
-            "Friendly Service",
-            "Convenient Booking"
-          ].map((item) => (
-            <div key={item} className="text-center">
+      <section className="container-lsc py-12 sm:py-16">
+        <Reveal>
+          <h2 className="font-display text-display-sm sm:text-display-md text-brown mb-8 sm:mb-10 text-center">
+            Why La Shefa
+          </h2>
+        </Reveal>
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-6 sm:gap-8">
+          {WHY_ITEMS.map(({ label, icon: Icon }, i) => (
+            <Reveal key={label} delay={i * 60} className="text-center">
               <div className="mx-auto mb-3 h-12 w-12 rounded-full bg-caramel/20 flex items-center justify-center">
-                <span className="h-2 w-2 rounded-full bg-caramel" />
+                <Icon size={22} strokeWidth={1.75} className="text-caramel" />
               </div>
-              <p className="font-body text-brown text-sm">{item}</p>
-            </div>
+              <p className="font-body text-brown text-xs sm:text-sm">{label}</p>
+            </Reveal>
           ))}
         </div>
       </section>
@@ -184,26 +247,41 @@ export default async function HomePage() {
       {/* Offers */}
       {offers.length > 0 && (
         <section className="bg-brown text-cream">
-          <div className="container-lsc py-16">
-            <h2 className="font-display text-3xl mb-8">Current Offers</h2>
-            <div className="grid md:grid-cols-3 gap-8">
-              {offers.map((o: any) => (
-                <div key={o.id} className="border border-cream/20 rounded-sm p-6">
-                  <h3 className="font-display text-xl mb-2">{o.title}</h3>
-                  {o.description && <p className="text-cream/75 text-sm">{o.description}</p>}
-                  {o.discount_text && (
-                    <p className="text-caramel font-semibold mt-3">{o.discount_text}</p>
-                  )}
-                </div>
+          <div className="container-lsc py-12 sm:py-16">
+            <Reveal>
+              <h2 className="font-display text-display-sm sm:text-display-md mb-8 flex items-center gap-2">
+                <Tag size={20} strokeWidth={1.75} className="text-caramel" />
+                Current Offers
+              </h2>
+            </Reveal>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 sm:gap-8">
+              {offers.map((o: any, i: number) => (
+                <Reveal key={o.id} delay={i * 60}>
+                  <div className="border border-cream/20 rounded-sm p-4 sm:p-6 h-full card-hover">
+                    <h3 className="font-display text-base sm:text-xl mb-2">{o.title}</h3>
+                    {o.description && (
+                      <p className="text-cream/75 text-xs sm:text-sm">{o.description}</p>
+                    )}
+                    {o.discount_text && (
+                      <p className="text-caramel font-semibold mt-2 sm:mt-3 text-sm">
+                        {o.discount_text}
+                      </p>
+                    )}
+                  </div>
+                </Reveal>
               ))}
             </div>
           </div>
         </section>
       )}
 
-      {/* Reviews */}
-      <section className="container-lsc py-16">
-        <h2 className="font-display text-3xl text-brown mb-10">What Customers Say</h2>
+      {/* Reviews — horizontal scroll rail on mobile, grid on larger screens */}
+      <section className="container-lsc py-12 sm:py-16">
+        <Reveal>
+          <h2 className="font-display text-display-sm sm:text-display-md text-brown mb-8 sm:mb-10">
+            What Customers Say
+          </h2>
+        </Reveal>
         {reviews.length === 0 ? (
           <EmptyState
             title="No reviews yet"
@@ -211,13 +289,25 @@ export default async function HomePage() {
             action={{ href: "/reviews", label: "Leave a review" }}
           />
         ) : (
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="scroll-rail gap-4 -mx-5 px-5 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-3 sm:gap-8">
             {reviews.map((r: any) => (
-              <div key={r.id} className="divider pt-5">
-                <p className="text-caramel mb-2" aria-label={`${r.rating} out of 5 stars`}>
-                  {"★".repeat(r.rating)}{"☆".repeat(5 - r.rating)}
-                </p>
-                {r.review_text && <p className="text-brown/80 text-sm mb-3">{r.review_text}</p>}
+              <div
+                key={r.id}
+                className="divider pt-5 flex-shrink-0 w-[78vw] xs:w-72 sm:w-auto"
+              >
+                <div className="flex gap-0.5 mb-2" aria-label={`${r.rating} out of 5 stars`}>
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Star
+                      key={i}
+                      size={15}
+                      strokeWidth={1.75}
+                      className={i < r.rating ? "text-caramel fill-caramel" : "text-brown/20"}
+                    />
+                  ))}
+                </div>
+                {r.review_text && (
+                  <p className="text-brown/80 text-sm mb-3 line-clamp-4">{r.review_text}</p>
+                )}
                 <p className="text-brown font-medium text-sm">{r.customer_name}</p>
               </div>
             ))}
@@ -227,13 +317,16 @@ export default async function HomePage() {
 
       {/* Booking CTA */}
       <section className="bg-teal text-cream">
-        <div className="container-lsc py-16 text-center">
-          <h2 className="font-display text-3xl mb-4">Ready to order?</h2>
-          <p className="text-cream/80 mb-8 max-w-md mx-auto">
+        <div className="container-lsc py-12 sm:py-16 text-center">
+          <h2 className="font-display text-display-sm sm:text-display-md mb-4">Ready to order?</h2>
+          <p className="text-cream/80 mb-7 sm:mb-8 max-w-md mx-auto text-sm sm:text-base">
             Browse the menu, place your order, and track it in real time — no account needed.
           </p>
-          <div className="flex flex-wrap gap-4 justify-center">
-            <Link href="/menu" className="btn-caramel">Order Now</Link>
+          <div className="flex flex-wrap gap-3 sm:gap-4 justify-center">
+            <Link href="/menu" className="btn-caramel">
+              Order Now
+              <ArrowRight size={16} strokeWidth={2} />
+            </Link>
             {flags.booking_enabled && (
               <Link href="/booking" className="btn-outline">Book a Table</Link>
             )}

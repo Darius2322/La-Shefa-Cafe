@@ -3,6 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useState } from "react";
+import { Menu, X, ShoppingBag, MapPin } from "lucide-react";
 import { useCart } from "./CartProvider";
 
 const BASE_LINKS = [
@@ -53,16 +54,21 @@ export function Navbar({ bookingEnabled = true }: { bookingEnabled?: boolean }) 
           </nav>
 
           <div className="flex items-center gap-3">
-            <Link href="/track" className="hidden sm:inline-block font-body text-sm text-brown hover:text-teal">
+            <Link
+              href="/track"
+              className="hidden sm:inline-flex items-center gap-1.5 font-body text-sm text-brown hover:text-teal transition-colors"
+            >
+              <MapPin size={15} strokeWidth={2} />
               Track Order
             </Link>
-            <Link href="/menu" className="hidden sm:inline-block btn-caramel !py-2 !px-4 text-sm">
+            <Link href="/menu" className="hidden sm:inline-block btn-caramel !py-2 !px-4">
               Order Now
             </Link>
-            <Link href="/checkout" className="relative btn-primary !py-2 !px-4 text-sm" aria-label="View cart">
+            <Link href="/checkout" className="relative btn-primary !py-2 !px-4" aria-label="View cart">
+              <ShoppingBag size={16} strokeWidth={2} />
               Cart
               {itemCount > 0 && (
-                <span className="ml-1 inline-flex items-center justify-center h-5 w-5 rounded-full bg-caramel text-brown text-xs font-semibold">
+                <span className="absolute -top-1.5 -right-1.5 inline-flex items-center justify-center h-[18px] min-w-[18px] px-1 rounded-full bg-caramel text-brown text-[11px] font-semibold leading-none">
                   {itemCount}
                 </span>
               )}
@@ -73,11 +79,7 @@ export function Navbar({ bookingEnabled = true }: { bookingEnabled?: boolean }) 
               aria-expanded={open}
               onClick={() => setOpen(true)}
             >
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <line x1="3" y1="6" x2="21" y2="6" />
-                <line x1="3" y1="12" x2="21" y2="12" />
-                <line x1="3" y1="18" x2="21" y2="18" />
-              </svg>
+              <Menu size={20} strokeWidth={2} />
             </button>
           </div>
         </div>
@@ -99,10 +101,7 @@ export function Navbar({ bookingEnabled = true }: { bookingEnabled?: boolean }) 
               aria-label="Close menu"
               className="text-cream p-1"
             >
-              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-                <line x1="5" y1="5" x2="19" y2="19" />
-                <line x1="19" y1="5" x2="5" y2="19" />
-              </svg>
+              <X size={24} strokeWidth={1.75} />
             </button>
           </div>
 
@@ -112,7 +111,7 @@ export function Navbar({ bookingEnabled = true }: { bookingEnabled?: boolean }) 
                 key={l.href}
                 href={l.href}
                 onClick={() => setOpen(false)}
-                className="text-cream font-display text-2xl py-3 border-b border-cream/10"
+                className="text-cream font-display text-xl py-3 border-b border-cream/10"
               >
                 {l.label}
               </Link>
@@ -120,8 +119,9 @@ export function Navbar({ bookingEnabled = true }: { bookingEnabled?: boolean }) 
             <Link
               href="/track"
               onClick={() => setOpen(false)}
-              className="text-cream font-display text-2xl py-3 border-b border-cream/10"
+              className="flex items-center gap-2 text-cream font-display text-xl py-3 border-b border-cream/10"
             >
+              <MapPin size={17} strokeWidth={2} className="text-caramel" />
               Track Order
             </Link>
           </nav>

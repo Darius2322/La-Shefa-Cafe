@@ -12,8 +12,8 @@ export default async function TermsPage() {
     .maybeSingle();
 
   return (
-    <div className="container-lsc py-16 max-w-prose">
-      <h1 className="font-display text-4xl text-brown mb-4">Terms &amp; Conditions</h1>
+    <div className="container-lsc py-12 sm:py-16 max-w-prose">
+      <h1 className="font-display text-display-lg text-brown mb-4">Terms &amp; Conditions</h1>
       {!data ? (
         <p className="text-brown/60 text-sm">
           Terms &amp; conditions have not been published yet.

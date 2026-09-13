@@ -3,8 +3,14 @@
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { DatePicker, TimePicker } from "@/components/DateTimePicker";
+import { CalendarDays, User, CheckCircle2, Minus, Plus } from "lucide-react";
 
 type Step = "when" | "details";
+
+const STEPS: { key: Step; label: string; icon: typeof CalendarDays }[] = [
+  { key: "when", label: "Date & party", icon: CalendarDays },
+  { key: "details", label: "Your details", icon: User }
+];
 
 export function BookingForm() {
   const [step, setStep] = useState<Step>("when");
@@ -48,8 +54,9 @@ export function BookingForm() {
   if (confirmation) {
     return (
       <div className="container-lsc py-16 max-w-xl">
-        <p className="text-caramel font-medium mb-2">Booking received</p>
-        <h1 className="font-display text-4xl text-brown mb-6">See you soon!</h1>
+        <CheckCircle2 size={32} strokeWidth={1.5} className="text-teal mb-4" />
+        <p className="text-caramel font-medium mb-2 text-sm">Booking received</p>
+        <h1 className="font-display text-display-lg text-brown mb-6">See you soon!</h1>
         <div className="border border-brown/15 rounded-sm p-6">
           <p className="text-sm text-brown/60 mb-1">Booking number</p>
           <p className="font-display text-2xl text-teal">{confirmation}</p>
@@ -59,15 +66,11 @@ export function BookingForm() {
   }
 
   return (
-    <div className="container-lsc py-14 max-w-lg">
-      <h1 className="font-display text-4xl text-brown mb-3">Book a Table</h1>
-      <p className="text-brown/70 mb-8">Reserve your table and we'll confirm shortly.</p>
+    <div className="container-lsc py-10 sm:py-14 max-w-lg">
+      <h1 className="font-display text-display-md sm:text-display-lg text-brown mb-3">Book a Table</h1>
+      <p className="text-brown/70 mb-8 text-sm sm:text-base">Reserve your table and we'll confirm shortly.</p>
 
-      <div className="flex items-center gap-3 mb-10 text-sm">
-        <StepPill active={step === "when"} done={step === "details"} label="1. Date & Party" />
-        <span className="h-px w-8 bg-brown/20" />
-        <StepPill active={step === "details"} done={false} label="2. Your details" />
-      </div>
+      <Stepper current={step} />
 
       {step === "when" ? (
         <div className="space-y-6">
@@ -91,17 +94,19 @@ export function BookingForm() {
               <button
                 type="button"
                 onClick={() => update("party_size", Math.max(1, form.party_size - 1))}
-                className="w-10 h-10 rounded-sm border border-brown/20 text-brown text-lg"
+                className="w-10 h-10 rounded-sm border border-brown/20 text-brown flex items-center justify-center hover:border-teal transition-colors"
+                aria-label="Decrease party size"
               >
-                −
+                <Minus size={16} strokeWidth={2} />
               </button>
               <span className="font-display text-2xl text-brown w-10 text-center">{form.party_size}</span>
               <button
                 type="button"
                 onClick={() => update("party_size", form.party_size + 1)}
-                className="w-10 h-10 rounded-sm border border-brown/20 text-brown text-lg"
+                className="w-10 h-10 rounded-sm border border-brown/20 text-brown flex items-center justify-center hover:border-teal transition-colors"
+                aria-label="Increase party size"
               >
-                +
+                <Plus size={16} strokeWidth={2} />
               </button>
             </div>
           </div>
@@ -153,15 +158,39 @@ export function BookingForm() {
   );
 }
 
-function StepPill({ active, done, label }: { active: boolean; done: boolean; label: string }) {
+function Stepper({ current }: { current: Step }) {
+  const currentIndex = STEPS.findIndex((s) => s.key === current);
   return (
-    <span
-      className={`px-3 py-1 rounded-full font-medium ${
-        active ? "bg-teal text-cream" : done ? "bg-caramel/30 text-brown" : "bg-brown/10 text-brown/50"
-      }`}
-    >
-      {label}
-    </span>
+    <div className="flex items-center gap-2 sm:gap-3 mb-8 sm:mb-10" role="list" aria-label="Booking progress">
+      {STEPS.map((s, i) => {
+        const isActive = i === currentIndex;
+        const isDone = i < currentIndex;
+        const Icon = s.icon;
+        return (
+          <div key={s.key} className="flex items-center gap-2 sm:gap-3 flex-1 last:flex-none">
+            <div role="listitem" aria-current={isActive ? "step" : undefined} className="flex items-center gap-2">
+              <span
+                className={`flex items-center justify-center h-8 w-8 sm:h-9 sm:w-9 rounded-full border transition-colors ${
+                  isActive
+                    ? "bg-teal border-teal text-cream"
+                    : isDone
+                    ? "bg-caramel/25 border-caramel/40 text-brown"
+                    : "border-brown/20 text-brown/40"
+                }`}
+              >
+                {isDone ? <CheckCircle2 size={16} strokeWidth={2} /> : <Icon size={16} strokeWidth={1.75} />}
+              </span>
+              <span className={`hidden sm:inline text-sm font-medium ${isActive ? "text-brown" : isDone ? "text-brown/70" : "text-brown/40"}`}>
+                {s.label}
+              </span>
+            </div>
+            {i < STEPS.length - 1 && (
+              <span className={`h-px flex-1 min-w-4 ${isDone ? "bg-caramel/50" : "bg-brown/15"}`} />
+            )}
+          </div>
+        );
+      })}
+    </div>
   );
 }
 

@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { Menu, X, LogOut } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 const NAV = [
@@ -107,11 +108,7 @@ export function StaffShell({ children }: { children: React.ReactNode }) {
               aria-label="Open menu"
               onClick={() => setMobileOpen(true)}
             >
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
-                <line x1="3" y1="6" x2="21" y2="6" />
-                <line x1="3" y1="12" x2="21" y2="12" />
-                <line x1="3" y1="18" x2="21" y2="18" />
-              </svg>
+              <Menu size={20} strokeWidth={1.75} />
             </button>
             <Image src="/logo.jpg" alt="La Shefa Cafe" width={30} height={30} className="rounded-sm" />
             <span className="font-display text-lg">La Shefa Cafe · Staff</span>
@@ -130,7 +127,10 @@ export function StaffShell({ children }: { children: React.ReactNode }) {
           <div className="hidden md:flex items-center gap-4 text-sm">
             <span className="text-cream/60">{staff?.full_name}</span>
             <Link href="/shefastaff/change-password" className="text-cream/60 hover:text-cream">Change password</Link>
-            <button onClick={handleLogout} className="text-caramel">Log out</button>
+            <button onClick={handleLogout} className="text-caramel flex items-center gap-1.5">
+              <LogOut size={14} strokeWidth={1.75} />
+              Log out
+            </button>
           </div>
         </div>
       </header>
@@ -140,10 +140,7 @@ export function StaffShell({ children }: { children: React.ReactNode }) {
           <div className="flex items-center justify-between px-5 py-4 border-b border-cream/15">
             <span className="font-display text-lg text-cream">Menu</span>
             <button onClick={() => setMobileOpen(false)} aria-label="Close menu" className="text-cream p-1">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                <line x1="5" y1="5" x2="19" y2="19" />
-                <line x1="19" y1="5" x2="5" y2="19" />
-              </svg>
+              <X size={22} strokeWidth={1.8} />
             </button>
           </div>
           <nav className="flex-1 px-5 py-6 flex flex-col gap-1">
@@ -162,7 +159,10 @@ export function StaffShell({ children }: { children: React.ReactNode }) {
             </Link>
           </nav>
           <div className="p-5 border-t border-cream/15">
-            <button onClick={handleLogout} className="text-caramel text-sm">Log out</button>
+            <button onClick={handleLogout} className="text-caramel text-sm flex items-center gap-1.5">
+              <LogOut size={14} strokeWidth={1.75} />
+              Log out
+            </button>
           </div>
         </div>
       )}

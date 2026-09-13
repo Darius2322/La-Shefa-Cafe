@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { Calculator as CalculatorIcon, PauseCircle, Undo2, Search, Printer, Wifi, WifiOff } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { getQueuedSales, queueSale, removeQueuedSale, type QueuedSale } from "@/lib/offlineQueue";
 
@@ -351,16 +352,19 @@ export default function AdminPosPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="font-display text-3xl text-brown">Mini POS</h1>
+      <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
+        <h1 className="font-display text-display-md text-brown">Mini POS</h1>
         <div className="flex gap-2">
-          <button onClick={() => setShowCalculator(true)} className="text-sm text-brown/60 border border-brown/20 rounded-sm px-3 py-1.5 hover:border-brown/40">
+          <button onClick={() => setShowCalculator(true)} className="text-sm text-brown/60 border border-brown/20 rounded-sm px-3 py-1.5 hover:border-brown/40 transition-colors inline-flex items-center gap-1.5">
+            <CalculatorIcon size={14} strokeWidth={1.75} />
             Calculator
           </button>
-          <button onClick={() => setShowHeld(true)} className="text-sm text-brown/60 border border-brown/20 rounded-sm px-3 py-1.5 hover:border-brown/40">
+          <button onClick={() => setShowHeld(true)} className="text-sm text-brown/60 border border-brown/20 rounded-sm px-3 py-1.5 hover:border-brown/40 transition-colors inline-flex items-center gap-1.5">
+            <PauseCircle size={14} strokeWidth={1.75} />
             Held Sales {heldSales.length > 0 && `(${heldSales.length})`}
           </button>
-          <button onClick={() => setShowRefund(true)} className="text-sm text-brown/60 border border-brown/20 rounded-sm px-3 py-1.5 hover:border-brown/40">
+          <button onClick={() => setShowRefund(true)} className="text-sm text-brown/60 border border-brown/20 rounded-sm px-3 py-1.5 hover:border-brown/40 transition-colors inline-flex items-center gap-1.5">
+            <Undo2 size={14} strokeWidth={1.75} />
             Refund
           </button>
         </div>
@@ -368,7 +372,7 @@ export default function AdminPosPage() {
 
       <div className="flex items-center gap-2 mb-4 text-xs">
         <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full ${isOnline ? "bg-teal/10 text-teal" : "bg-red-50 text-red-700"}`}>
-          <span className={`h-1.5 w-1.5 rounded-full ${isOnline ? "bg-teal" : "bg-red-600"}`} />
+          {isOnline ? <Wifi size={12} strokeWidth={2} /> : <WifiOff size={12} strokeWidth={2} />}
           {isOnline ? "Online" : "Offline"}
         </span>
         {queuedCount > 0 && (
@@ -389,7 +393,10 @@ export default function AdminPosPage() {
             {lastSale.change > 0 && ` Change due: KSh ${lastSale.change.toLocaleString()}`}
           </p>
           <div className="flex gap-3">
-            <button onClick={() => printReceipt(lastSale.id)} className="text-caramel text-sm underline">Print Receipt</button>
+            <button onClick={() => printReceipt(lastSale.id)} className="text-caramel text-sm underline inline-flex items-center gap-1.5">
+              <Printer size={13} strokeWidth={1.75} />
+              Print Receipt
+            </button>
             <button onClick={() => setLastSale(null)} className="text-caramel text-sm">Dismiss</button>
           </div>
         </div>
@@ -397,19 +404,22 @@ export default function AdminPosPage() {
 
       <div className="grid lg:grid-cols-[1fr_360px] gap-6">
         <div>
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search products…"
-            className="input mb-4"
-          />
+          <div className="relative mb-4">
+            <Search size={15} strokeWidth={2} className="absolute left-3 top-1/2 -translate-y-1/2 text-brown/40" />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search products…"
+              className="input !pl-9"
+            />
+          </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {filtered.map((p) => (
               <button
                 key={p.id}
                 onClick={() => addProduct(p)}
                 disabled={!p.is_available}
-                className="bg-white border border-brown/10 rounded-sm p-3 text-left hover:border-teal disabled:opacity-40 disabled:cursor-not-allowed"
+                className="bg-white border border-brown/10 rounded-sm p-3 text-left hover:border-teal disabled:opacity-40 disabled:cursor-not-allowed card-hover"
               >
                 <p className="text-sm font-medium text-brown">{p.name}</p>
                 <p className="text-xs text-teal">KSh {Number(p.price).toLocaleString()}</p>

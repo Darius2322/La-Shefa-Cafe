@@ -2,6 +2,15 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import {
+  ClipboardList,
+  Wallet,
+  Hourglass,
+  Star,
+  CalendarCheck,
+  CakeSlice,
+  type LucideIcon
+} from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 type Stats = {
@@ -47,29 +56,40 @@ export default function AdminDashboardPage() {
 
   return (
     <div>
-      <h1 className="font-display text-3xl text-brown mb-8">Dashboard</h1>
+      <h1 className="font-display text-display-md text-brown mb-8">Dashboard</h1>
 
       {!stats ? (
         <p className="text-brown/50 text-sm">Loading…</p>
       ) : (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          <StatCard label="Orders Today" value={stats.todayOrders} />
-          <StatCard label="Revenue Today" value={`KSh ${stats.todayRevenue.toLocaleString()}`} />
-          <StatCard label="Pending Orders" value={stats.pendingOrders} href="/adminlsc/orders" />
-          <StatCard label="Pending Reviews" value={stats.pendingReviews} href="/adminlsc/reviews" />
-          <StatCard label="Pending Bookings" value={stats.pendingBookings} href="/adminlsc/bookings" />
-          <StatCard label="Pending Cake Requests" value={stats.pendingCakes} href="/adminlsc/cakes" />
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-5">
+          <StatCard icon={ClipboardList} label="Orders Today" value={stats.todayOrders} />
+          <StatCard icon={Wallet} label="Revenue Today" value={`KSh ${stats.todayRevenue.toLocaleString()}`} />
+          <StatCard icon={Hourglass} label="Pending Orders" value={stats.pendingOrders} href="/adminlsc/orders" />
+          <StatCard icon={Star} label="Pending Reviews" value={stats.pendingReviews} href="/adminlsc/reviews" />
+          <StatCard icon={CalendarCheck} label="Pending Bookings" value={stats.pendingBookings} href="/adminlsc/bookings" />
+          <StatCard icon={CakeSlice} label="Pending Cake Requests" value={stats.pendingCakes} href="/adminlsc/cakes" />
         </div>
       )}
     </div>
   );
 }
 
-function StatCard({ label, value, href }: { label: string; value: string | number; href?: string }) {
+function StatCard({
+  icon: Icon,
+  label,
+  value,
+  href
+}: {
+  icon: LucideIcon;
+  label: string;
+  value: string | number;
+  href?: string;
+}) {
   const content = (
-    <div className="bg-white border border-brown/10 rounded-sm p-5 hover:border-teal transition-colors">
-      <p className="text-sm text-brown/60 mb-1">{label}</p>
-      <p className="font-display text-3xl text-brown">{value}</p>
+    <div className="bg-white border border-brown/10 rounded-sm p-4 sm:p-5 hover:border-teal transition-colors card-hover h-full">
+      <Icon size={18} strokeWidth={1.75} className="text-caramel mb-2" />
+      <p className="text-xs sm:text-sm text-brown/60 mb-1">{label}</p>
+      <p className="font-display text-xl sm:text-3xl text-brown">{value}</p>
     </div>
   );
   return href ? <Link href={href}>{content}</Link> : content;

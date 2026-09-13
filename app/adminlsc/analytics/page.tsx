@@ -93,7 +93,7 @@ export default function AdminAnalyticsPage() {
 
   return (
     <div>
-      <h1 className="font-display text-3xl text-brown mb-2">Analytics</h1>
+      <h1 className="font-display text-display-md text-brown mb-2">Analytics</h1>
       <p className="text-sm text-brown/50 mb-8">Last 14 days, based on actual orders in the database.</p>
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">

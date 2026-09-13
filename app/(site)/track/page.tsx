@@ -2,6 +2,7 @@
 
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { PackageSearch } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useCart } from "@/components/CartProvider";
 
@@ -115,19 +116,19 @@ function TrackPageInner() {
   }
 
   return (
-    <div className="container-lsc py-16 max-w-2xl">
-      <h1 className="font-display text-4xl text-brown mb-3">Track Your Order</h1>
-      <p className="text-brown/70 mb-8">
+    <div className="container-lsc py-10 sm:py-16 max-w-2xl">
+      <h1 className="font-display text-display-md sm:text-display-lg text-brown mb-3">Track Your Order</h1>
+      <p className="text-brown/70 mb-8 text-sm sm:text-base">
         Enter your order number and the phone number used when ordering.
       </p>
 
-      <form onSubmit={handleSubmit} className="grid sm:grid-cols-[1fr_1fr_auto] gap-3 mb-10">
+      <form onSubmit={handleSubmit} className="grid sm:grid-cols-[1fr_1fr_auto] gap-3 mb-8 sm:mb-10">
         <input
           required
           placeholder="Order number, e.g. LSC-20260903-00482"
           value={orderNumber}
           onChange={(e) => setOrderNumber(e.target.value)}
-          className="border border-brown/20 rounded-sm px-4 py-2.5 bg-white text-brown text-sm"
+          className="border border-brown/20 rounded-sm px-4 py-2.5 bg-white text-brown text-sm focus:border-teal transition-colors"
         />
         <input
           required
@@ -135,7 +136,7 @@ function TrackPageInner() {
           type="tel"
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
-          className="border border-brown/20 rounded-sm px-4 py-2.5 bg-white text-brown text-sm"
+          className="border border-brown/20 rounded-sm px-4 py-2.5 bg-white text-brown text-sm focus:border-teal transition-colors"
         />
         <button type="submit" disabled={loading} className="btn-primary disabled:opacity-50">
           {loading ? "Checking…" : "Track"}
@@ -144,6 +145,7 @@ function TrackPageInner() {
 
       {result === "not_found" && (
         <div className="border border-dashed border-brown/25 rounded-sm p-8 text-center mb-8">
+          <PackageSearch size={28} strokeWidth={1.5} className="mx-auto mb-3 text-brown/30" />
           <p className="font-display text-xl text-brown mb-2">No matching order</p>
           <p className="text-brown/60 text-sm">
             Double-check the order number and phone number, then try again.

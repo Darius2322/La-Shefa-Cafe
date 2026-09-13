@@ -121,7 +121,7 @@ export default function AdminStaffPage() {
 
   return (
     <div>
-      <h1 className="font-display text-3xl text-brown mb-2">Staff</h1>
+      <h1 className="font-display text-display-md text-brown mb-2">Staff</h1>
       <p className="text-xs text-brown/50 mb-6">
         Default password for new staff and resets: <code className="bg-brown/5 px-1.5 py-0.5 rounded">Staff@lsc321</code> — staff should change it after first login.
       </p>

@@ -36,7 +36,7 @@ export default function AdminLogsPage() {
 
   return (
     <div>
-      <h1 className="font-display text-3xl text-brown mb-6">Activity Logs</h1>
+      <h1 className="font-display text-display-md text-brown mb-6">Activity Logs</h1>
 
       <input
         value={search}

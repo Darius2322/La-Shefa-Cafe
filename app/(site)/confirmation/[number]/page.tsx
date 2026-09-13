@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { CheckCircle2, Copy, Check } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 type TrackResult = {
@@ -48,15 +49,17 @@ export default function ConfirmationPage({
   };
 
   return (
-    <div className="container-lsc py-16 max-w-xl">
-      <p className="text-caramel font-medium mb-2">Order placed</p>
-      <h1 className="font-display text-4xl text-brown mb-8">Thank you{order ? `, ${order.customer_name}` : ""}!</h1>
+    <div className="container-lsc py-10 sm:py-16 max-w-xl">
+      <CheckCircle2 size={32} strokeWidth={1.5} className="text-teal mb-4" />
+      <p className="text-caramel font-medium mb-2 text-sm">Order placed</p>
+      <h1 className="font-display text-display-lg text-brown mb-8">Thank you{order ? `, ${order.customer_name}` : ""}!</h1>
 
       <div className="border border-brown/15 rounded-sm p-6 mb-8">
         <p className="text-sm text-brown/60 mb-1">Your order number</p>
         <div className="flex items-center justify-between gap-4">
           <p className="font-display text-2xl text-teal">{params.number}</p>
-          <button onClick={copyNumber} className="btn-primary !py-2 !px-4 text-sm">
+          <button onClick={copyNumber} className="btn-primary !py-2 !px-4">
+            {copied ? <Check size={15} strokeWidth={2} /> : <Copy size={15} strokeWidth={2} />}
             {copied ? "Copied" : "Copy"}
           </button>
         </div>

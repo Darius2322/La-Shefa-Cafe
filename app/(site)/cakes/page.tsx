@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { DatePicker, TimePicker } from "@/components/DateTimePicker";
+import { CakeSlice, CheckCircle2, ImagePlus, X as XIcon } from "lucide-react";
 
 const CAKE_TYPES = ["Birthday", "Wedding", "Anniversary", "Graduation", "Custom"];
 
@@ -89,8 +90,9 @@ export default function CakesPage() {
   if (confirmation) {
     return (
       <div className="container-lsc py-16 max-w-xl">
-        <p className="text-caramel font-medium mb-2">Request received</p>
-        <h1 className="font-display text-4xl text-brown mb-6">We've got your cake request!</h1>
+        <CheckCircle2 size={32} strokeWidth={1.5} className="text-teal mb-4" />
+        <p className="text-caramel font-medium mb-2 text-sm">Request received</p>
+        <h1 className="font-display text-display-lg text-brown mb-6">We've got your cake request!</h1>
         <div className="border border-brown/15 rounded-sm p-6 mb-6">
           <p className="text-sm text-brown/60 mb-1">Request number</p>
           <p className="font-display text-2xl text-teal">{confirmation}</p>
@@ -103,25 +105,30 @@ export default function CakesPage() {
   }
 
   return (
-    <div className="container-lsc py-14 max-w-2xl">
-      <h1 className="font-display text-4xl text-brown mb-3">Request a Cake</h1>
-      <p className="text-brown/70 mb-10">
+    <div className="container-lsc py-10 sm:py-14 max-w-2xl">
+      <h1 className="font-display text-display-md sm:text-display-lg text-brown mb-3">Request a Cake</h1>
+      <p className="text-brown/70 mb-8 sm:mb-10 text-sm sm:text-base">
         Tell us what you're celebrating and we'll get back to you to confirm the details.
       </p>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-10">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-8 sm:mb-10">
         {CAKE_TYPES.map((t) => (
           <button
             type="button"
             key={t}
             onClick={() => update("cake_type", t)}
-            className={`text-left px-4 py-4 rounded-sm border-2 transition-colors ${
+            className={`text-left px-4 py-4 rounded-sm border-2 transition-colors card-hover ${
               form.cake_type === t
                 ? "border-teal bg-teal/5"
                 : "border-brown/15 hover:border-brown/30"
             }`}
           >
-            <p className="font-display text-lg text-brown">{t}</p>
+            <CakeSlice
+              size={18}
+              strokeWidth={1.75}
+              className={form.cake_type === t ? "text-teal mb-2" : "text-brown/40 mb-2"}
+            />
+            <p className="font-display text-base sm:text-lg text-brown">{t}</p>
           </button>
         ))}
       </div>
@@ -181,17 +188,22 @@ export default function CakesPage() {
             <div>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={referenceImageUrl} alt="Cake reference" className="w-32 h-32 object-cover rounded-sm border border-brown/10 mb-2" />
-              <button type="button" onClick={() => setReferenceImageUrl(null)} className="text-xs text-teal hover:underline">
+              <button type="button" onClick={() => setReferenceImageUrl(null)} className="inline-flex items-center gap-1 text-xs text-teal hover:underline">
+                <XIcon size={13} strokeWidth={2} />
                 Remove image
               </button>
             </div>
           ) : (
-            <input
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              onChange={(e) => e.target.files?.[0] && handleImageUpload(e.target.files[0])}
-              className="text-sm"
-            />
+            <label className="flex items-center gap-2 border border-dashed border-brown/25 rounded-sm px-4 py-3 text-sm text-brown/60 cursor-pointer hover:border-teal transition-colors w-fit">
+              <ImagePlus size={16} strokeWidth={1.75} />
+              Choose an image
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                onChange={(e) => e.target.files?.[0] && handleImageUpload(e.target.files[0])}
+                className="hidden"
+              />
+            </label>
           )}
           {uploadingImage && <span className="block text-xs text-brown/50 mt-1">Uploading…</span>}
           {imageError && <span className="block text-xs text-red-700 mt-1">{imageError}</span>}

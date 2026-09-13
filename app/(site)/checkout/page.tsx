@@ -2,6 +2,17 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import {
+  CheckCircle2,
+  ClipboardList,
+  Store,
+  Truck,
+  User,
+  MapPin,
+  Copy,
+  Check,
+  X as XIcon
+} from "lucide-react";
 import { useCart } from "@/components/CartProvider";
 import { supabase } from "@/lib/supabase";
 import { getShopLocation, mapsUrlFromLocation } from "@/lib/settings";
@@ -9,6 +20,12 @@ import { DatePicker, TimePicker } from "@/components/DateTimePicker";
 
 type Step = "order" | "details" | "confirmation";
 type Contact = { phone?: string; whatsapp?: string; address?: string };
+
+const STEPS: { key: Step; label: string; icon: typeof ClipboardList }[] = [
+  { key: "order", label: "Order", icon: ClipboardList },
+  { key: "details", label: "Your details", icon: User },
+  { key: "confirmation", label: "Confirmation", icon: CheckCircle2 }
+];
 
 export default function CheckoutPage() {
   const { lines, subtotal, updateQuantity, removeItem, clear } = useCart();
@@ -155,21 +172,16 @@ export default function CheckoutPage() {
   }
 
   return (
-    <div className="container-lsc py-14 max-w-3xl">
-      <h1 className="font-display text-4xl text-brown mb-2">Checkout</h1>
+    <div className="container-lsc py-10 sm:py-14 max-w-3xl">
+      <h1 className="font-display text-display-md sm:text-display-lg text-brown mb-6 sm:mb-2">Checkout</h1>
 
-      <div className="flex items-center gap-3 mb-10 text-sm">
-        <StepPill active={step === "order"} done={step === "details" || step === "confirmation"} label="1. Order" />
-        <span className="h-px w-8 bg-brown/20" />
-        <StepPill active={step === "details"} done={step === "confirmation"} label="2. Your details" />
-        <span className="h-px w-8 bg-brown/20" />
-        <StepPill active={step === "confirmation"} done={false} label="3. Confirmation" />
-      </div>
+      <Stepper current={step} />
 
       {step === "confirmation" && placedOrder ? (
         <div className="max-w-xl">
-          <p className="text-caramel font-medium mb-2">Order placed</p>
-          <h2 className="font-display text-3xl text-brown mb-8">Thank you!</h2>
+          <CheckCircle2 size={32} strokeWidth={1.5} className="text-teal mb-4" />
+          <p className="text-caramel font-medium mb-2 text-sm">Order placed</p>
+          <h2 className="font-display text-display-md text-brown mb-8">Thank you!</h2>
 
           <div className="border border-brown/15 rounded-sm p-6 mb-8">
             <p className="text-sm text-brown/60 mb-1">Your order number</p>
@@ -181,8 +193,9 @@ export default function CheckoutPage() {
                   setCopied(true);
                   setTimeout(() => setCopied(false), 1500);
                 }}
-                className="btn-primary !py-2 !px-4 text-sm"
+                className="btn-primary !py-2 !px-4"
               >
+                {copied ? <Check size={15} strokeWidth={2} /> : <Copy size={15} strokeWidth={2} />}
                 {copied ? "Copied" : "Copy"}
               </button>
             </div>
@@ -226,7 +239,10 @@ export default function CheckoutPage() {
       ) : step === "order" ? (
         <div className="space-y-10">
           <section>
-            <h2 className="font-display text-xl text-brown mb-4">Items</h2>
+            <h2 className="font-display text-lg sm:text-xl text-brown mb-4 flex items-center gap-2">
+              <ClipboardList size={18} strokeWidth={1.75} className="text-caramel" />
+              Items
+            </h2>
             <div className="space-y-4">
               {lines.map((l) => (
                 <div key={l.product_id} className="flex items-center justify-between gap-3 divider pt-4">
@@ -248,9 +264,9 @@ export default function CheckoutPage() {
                     <button
                       onClick={() => removeItem(l.product_id)}
                       aria-label={`Remove ${l.product_name}`}
-                      className="text-brown/40 hover:text-brown"
+                      className="text-brown/40 hover:text-brown p-1"
                     >
-                      ×
+                      <XIcon size={15} strokeWidth={2} />
                     </button>
                   </div>
                 </div>
@@ -263,30 +279,32 @@ export default function CheckoutPage() {
           </section>
 
           <section>
-            <h2 className="font-display text-xl text-brown mb-4">How would you like it?</h2>
+            <h2 className="font-display text-lg sm:text-xl text-brown mb-4">How would you like it?</h2>
             <div className="grid sm:grid-cols-2 gap-4">
               <button
                 type="button"
                 onClick={() => setFulfillment("pickup")}
-                className={`text-left px-5 py-4 rounded-sm border-2 transition-colors ${
+                className={`text-left px-5 py-4 rounded-sm border-2 transition-colors card-hover ${
                   fulfillment === "pickup"
                     ? "border-teal bg-teal/5"
                     : "border-brown/15 hover:border-brown/30"
                 }`}
               >
-                <p className="font-display text-lg text-brown">Pickup</p>
+                <Store size={18} strokeWidth={1.75} className={fulfillment === "pickup" ? "text-teal mb-2" : "text-brown/40 mb-2"} />
+                <p className="font-display text-base sm:text-lg text-brown">Pickup</p>
                 <p className="text-sm text-brown/60 mt-1">Collect your order at the café</p>
               </button>
               <button
                 type="button"
                 onClick={() => setFulfillment("delivery")}
-                className={`text-left px-5 py-4 rounded-sm border-2 transition-colors ${
+                className={`text-left px-5 py-4 rounded-sm border-2 transition-colors card-hover ${
                   fulfillment === "delivery"
                     ? "border-teal bg-teal/5"
                     : "border-brown/15 hover:border-brown/30"
                 }`}
               >
-                <p className="font-display text-lg text-brown">Delivery</p>
+                <Truck size={18} strokeWidth={1.75} className={fulfillment === "delivery" ? "text-teal mb-2" : "text-brown/40 mb-2"} />
+                <p className="font-display text-base sm:text-lg text-brown">Delivery</p>
                 <p className="text-sm text-brown/60 mt-1">We'll bring it to you</p>
               </button>
             </div>
@@ -326,7 +344,8 @@ export default function CheckoutPage() {
                     disabled={locating}
                     className="btn-outline !text-brown !border-brown/30 text-sm disabled:opacity-50"
                   >
-                    {locating ? "Getting your location…" : "📍 Use my current location"}
+                    <MapPin size={15} strokeWidth={2} />
+                    {locating ? "Getting your location…" : "Use my current location"}
                   </button>
                   {deliveryCoords && (
                     <p className="text-xs text-teal mt-2">
@@ -371,7 +390,10 @@ export default function CheckoutPage() {
           </div>
 
           <fieldset className="space-y-4">
-            <legend className="font-display text-xl text-brown mb-2">Your details</legend>
+            <legend className="font-display text-lg sm:text-xl text-brown mb-2 flex items-center gap-2">
+              <User size={18} strokeWidth={1.75} className="text-caramel" />
+              Your details
+            </legend>
             <Field label="Full name" required>
               <input
                 required
@@ -439,19 +461,51 @@ export default function CheckoutPage() {
   );
 }
 
-function StepPill({ active, done, label }: { active: boolean; done: boolean; label: string }) {
+function Stepper({ current }: { current: Step }) {
+  const currentIndex = STEPS.findIndex((s) => s.key === current);
   return (
-    <span
-      className={`px-3 py-1 rounded-full font-medium ${
-        active
-          ? "bg-teal text-cream"
-          : done
-          ? "bg-caramel/30 text-brown"
-          : "bg-brown/10 text-brown/50"
-      }`}
-    >
-      {label}
-    </span>
+    <div className="flex items-center gap-2 sm:gap-3 mb-8 sm:mb-10" role="list" aria-label="Checkout progress">
+      {STEPS.map((s, i) => {
+        const isActive = i === currentIndex;
+        const isDone = i < currentIndex;
+        const Icon = s.icon;
+        return (
+          <div key={s.key} className="flex items-center gap-2 sm:gap-3 flex-1 last:flex-none">
+            <div
+              role="listitem"
+              aria-current={isActive ? "step" : undefined}
+              className="flex items-center gap-2"
+            >
+              <span
+                className={`flex items-center justify-center h-8 w-8 sm:h-9 sm:w-9 rounded-full border transition-colors ${
+                  isActive
+                    ? "bg-teal border-teal text-cream"
+                    : isDone
+                    ? "bg-caramel/25 border-caramel/40 text-brown"
+                    : "border-brown/20 text-brown/40"
+                }`}
+              >
+                {isDone ? (
+                  <CheckCircle2 size={16} strokeWidth={2} />
+                ) : (
+                  <Icon size={16} strokeWidth={1.75} />
+                )}
+              </span>
+              <span
+                className={`hidden sm:inline text-sm font-medium ${
+                  isActive ? "text-brown" : isDone ? "text-brown/70" : "text-brown/40"
+                }`}
+              >
+                {s.label}
+              </span>
+            </div>
+            {i < STEPS.length - 1 && (
+              <span className={`h-px flex-1 min-w-4 ${isDone ? "bg-caramel/50" : "bg-brown/15"}`} />
+            )}
+          </div>
+        );
+      })}
+    </div>
   );
 }
 

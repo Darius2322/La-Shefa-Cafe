@@ -48,7 +48,7 @@ export default function AdminReviewsPage() {
 
   return (
     <div>
-      <h1 className="font-display text-3xl text-brown mb-6">Reviews</h1>
+      <h1 className="font-display text-display-md text-brown mb-6">Reviews</h1>
 
       <div className="flex gap-2 mb-6">
         <FilterPill active={filter === "pending"} onClick={() => setFilter("pending")} label={`Pending (${reviews.filter((r) => !r.is_approved).length})`} />

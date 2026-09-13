@@ -43,7 +43,7 @@ export default function AdminBookingsPage() {
 
   return (
     <div>
-      <h1 className="font-display text-3xl text-brown mb-6">Bookings</h1>
+      <h1 className="font-display text-display-md text-brown mb-6">Bookings</h1>
       {loading ? (
         <p className="text-brown/50 text-sm">Loading…</p>
       ) : bookings.length === 0 ? (

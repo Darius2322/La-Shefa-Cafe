@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Plus } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 type Offer = {
@@ -101,8 +102,11 @@ export default function AdminOffersPage() {
   return (
     <div>
       <div className="flex items-center justify-between mb-8">
-        <h1 className="font-display text-3xl text-brown">Offers</h1>
-        <button onClick={startNew} className="btn-primary">Add Offer</button>
+        <h1 className="font-display text-display-md text-brown">Offers</h1>
+        <button onClick={startNew} className="btn-primary">
+          <Plus size={16} strokeWidth={2} />
+          Add Offer
+        </button>
       </div>
 
       {showForm && (

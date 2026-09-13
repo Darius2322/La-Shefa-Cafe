@@ -47,7 +47,7 @@ export default function StaffLoginPage() {
 
   return (
     <div className="min-h-screen bg-teal flex items-center justify-center px-4">
-      <div className="bg-cream rounded-sm p-8 w-full max-w-sm">
+      <div className="bg-cream rounded-sm p-8 w-full max-w-sm shadow-soft-lg">
         <div className="flex justify-center mb-6">
           <Image src="/logo.jpg" alt="La Shefa Cafe" width={64} height={64} className="rounded-sm" />
         </div>

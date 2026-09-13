@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { Phone, MessageCircle, Mail, MapPin, Clock } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { OrderCta } from "@/components/OrderCta";
 import { getShopLocation, mapsUrlFromLocation } from "@/lib/settings";
@@ -18,19 +18,22 @@ export default async function ContactPage() {
 
   return (
     <div>
-      <div className="relative h-48 md:h-64">
-        <Image
-          src="https://source.unsplash.com/1600x600/?bakery,pastry"
-          alt=""
-          fill
-          className="object-cover"
+      <div className="relative bg-teal text-cream overflow-hidden">
+        <div
+          className="absolute inset-0 opacity-[0.07]"
+          style={{
+            backgroundImage: "radial-gradient(circle at 1px 1px, #F8F4EE 1px, transparent 0)",
+            backgroundSize: "28px 28px"
+          }}
+          aria-hidden
         />
-        <div className="absolute inset-0 bg-brown/50 flex items-end">
-          <h1 className="container-lsc font-display text-4xl text-cream pb-6">Contact Us</h1>
+        <div className="container-lsc py-14 sm:py-20 relative">
+          <p className="font-body text-caramel text-xs sm:text-sm tracking-[0.15em] uppercase mb-3">Get in touch</p>
+          <h1 className="font-display text-display-lg text-cream">Contact Us</h1>
         </div>
       </div>
 
-      <div className="container-lsc py-16 max-w-2xl">
+      <div className="container-lsc py-12 sm:py-16 max-w-2xl">
       {!hasContactInfo ? (
         <div className="border border-dashed border-brown/25 rounded-sm p-10 text-center">
           <p className="font-display text-xl text-brown mb-2">Contact details coming soon</p>
@@ -39,21 +42,44 @@ export default async function ContactPage() {
           </p>
         </div>
       ) : (
-        <div className="grid sm:grid-cols-2 gap-8">
-          <div className="space-y-3 text-brown/80">
-            {contact.phone && <p>Phone: {contact.phone}</p>}
-            {contact.whatsapp && <p>WhatsApp: {contact.whatsapp}</p>}
-            {contact.email && <p>Email: {contact.email}</p>}
-            {contact.address && <p>Address: {contact.address}</p>}
+        <div className="grid grid-cols-2 sm:grid-cols-2 gap-4 sm:gap-8">
+          <div className="col-span-2 sm:col-span-1 space-y-3 text-brown/80 text-sm sm:text-base">
+            {contact.phone && (
+              <p className="flex items-center gap-2">
+                <Phone size={16} strokeWidth={1.75} className="text-caramel flex-shrink-0" />
+                {contact.phone}
+              </p>
+            )}
+            {contact.whatsapp && (
+              <p className="flex items-center gap-2">
+                <MessageCircle size={16} strokeWidth={1.75} className="text-caramel flex-shrink-0" />
+                {contact.whatsapp}
+              </p>
+            )}
+            {contact.email && (
+              <p className="flex items-center gap-2">
+                <Mail size={16} strokeWidth={1.75} className="text-caramel flex-shrink-0" />
+                {contact.email}
+              </p>
+            )}
+            {contact.address && (
+              <p className="flex items-center gap-2">
+                <MapPin size={16} strokeWidth={1.75} className="text-caramel flex-shrink-0" />
+                {contact.address}
+              </p>
+            )}
             {mapsUrl && (
-              <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="inline-block text-teal font-medium hover:underline">
+              <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="inline-block text-teal font-medium hover:underline text-sm">
                 View on Google Maps →
               </a>
             )}
           </div>
           {contact.hours && (
-            <div>
-              <h2 className="font-display text-xl text-brown mb-3">Opening Hours</h2>
+            <div className="col-span-2 sm:col-span-1">
+              <h2 className="font-display text-lg sm:text-xl text-brown mb-3 flex items-center gap-2">
+                <Clock size={17} strokeWidth={1.75} className="text-caramel" />
+                Opening Hours
+              </h2>
               <p className="text-brown/80 text-sm whitespace-pre-line">{contact.hours}</p>
             </div>
           )}

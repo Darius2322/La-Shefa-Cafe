@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, Fragment } from "react";
+import { Plus, ImagePlus, Pencil, Trash2, Eye, EyeOff, ChevronDown, ChevronUp } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 type Category = { id: string; name: string };
@@ -195,8 +196,11 @@ export default function AdminProductsPage() {
   return (
     <div>
       <div className="flex items-center justify-between mb-8">
-        <h1 className="font-display text-3xl text-brown">Products</h1>
-        <button onClick={startNew} className="btn-primary">Add Product</button>
+        <h1 className="font-display text-display-md text-brown">Products</h1>
+        <button onClick={startNew} className="btn-primary">
+          <Plus size={16} strokeWidth={2} />
+          Add Product
+        </button>
       </div>
 
       {showForm && (
@@ -243,12 +247,16 @@ export default function AdminProductsPage() {
               </div>
             )}
             {!form.image_url && (
-              <input
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                onChange={(e) => e.target.files?.[0] && handleImageUpload(e.target.files[0])}
-                className="text-sm"
-              />
+              <label className="flex items-center gap-2 border border-dashed border-brown/25 rounded-sm px-4 py-3 text-sm text-brown/60 cursor-pointer hover:border-teal transition-colors w-fit">
+                <ImagePlus size={16} strokeWidth={1.75} />
+                Choose an image
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={(e) => e.target.files?.[0] && handleImageUpload(e.target.files[0])}
+                  className="hidden"
+                />
+              </label>
             )}
             <span className="block text-xs text-brown/40 mt-1">JPG, PNG or WebP, up to 5MB</span>
           </label>
@@ -285,8 +293,8 @@ export default function AdminProductsPage() {
       ) : products.length === 0 ? (
         <p className="text-brown/50 text-sm">No products yet. Add your first one above.</p>
       ) : (
-        <div className="bg-white border border-brown/10 rounded-sm overflow-hidden">
-          <table className="w-full text-sm">
+        <div className="bg-white border border-brown/10 rounded-sm overflow-x-auto">
+          <table className="w-full text-sm min-w-[640px]">
             <thead className="bg-cream text-brown/60 text-left">
               <tr>
                 <th className="p-3 font-medium">Name</th>
@@ -307,22 +315,33 @@ export default function AdminProductsPage() {
                       {p.is_featured && <Badge label="Featured" tone="caramel" />}
                       {!p.is_hidden && p.is_available && !p.is_featured && <Badge label="Live" tone="teal" />}
                     </td>
-                    <td className="p-3 text-right space-x-3 whitespace-nowrap">
-                      <button
-                        onClick={() => {
-                          const next = expandedId === p.id ? null : p.id;
-                          setExpandedId(next);
-                          if (next) loadSoldCount(p.id);
-                        }}
-                        className="text-brown/60 hover:underline"
-                      >
-                        {expandedId === p.id ? "Hide" : "Details"}
-                      </button>
-                      <button onClick={() => toggleField(p, "is_hidden")} className="text-teal hover:underline">
-                        {p.is_hidden ? "Show" : "Hide"}
-                      </button>
-                      <button onClick={() => startEdit(p)} className="text-teal hover:underline">Edit</button>
-                      <button onClick={() => deleteProduct(p.id)} className="text-red-700 hover:underline">Delete</button>
+                    <td className="p-3 text-right whitespace-nowrap">
+                      <div className="flex items-center justify-end gap-1">
+                        <button
+                          onClick={() => {
+                            const next = expandedId === p.id ? null : p.id;
+                            setExpandedId(next);
+                            if (next) loadSoldCount(p.id);
+                          }}
+                          className="p-1.5 text-brown/50 hover:text-brown"
+                          aria-label={expandedId === p.id ? "Hide details" : "Show details"}
+                        >
+                          {expandedId === p.id ? <ChevronUp size={15} strokeWidth={1.75} /> : <ChevronDown size={15} strokeWidth={1.75} />}
+                        </button>
+                        <button
+                          onClick={() => toggleField(p, "is_hidden")}
+                          className="p-1.5 text-teal hover:text-teal-dark"
+                          aria-label={p.is_hidden ? "Show on menu" : "Hide from menu"}
+                        >
+                          {p.is_hidden ? <Eye size={15} strokeWidth={1.75} /> : <EyeOff size={15} strokeWidth={1.75} />}
+                        </button>
+                        <button onClick={() => startEdit(p)} className="p-1.5 text-teal hover:text-teal-dark" aria-label="Edit product">
+                          <Pencil size={15} strokeWidth={1.75} />
+                        </button>
+                        <button onClick={() => deleteProduct(p.id)} className="p-1.5 text-red-700 hover:text-red-800" aria-label="Delete product">
+                          <Trash2 size={15} strokeWidth={1.75} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                   {expandedId === p.id && (

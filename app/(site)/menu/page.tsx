@@ -30,9 +30,9 @@ export default async function MenuPage() {
   const { categories, products } = await getMenuData();
 
   return (
-    <div className="container-lsc py-14">
-      <h1 className="font-display text-4xl text-brown mb-2">Our Menu</h1>
-      <p className="text-brown/70 mb-10 max-w-prose">
+    <div className="container-lsc py-10 sm:py-14">
+      <h1 className="font-display text-display-md sm:text-display-lg text-brown mb-2">Our Menu</h1>
+      <p className="text-brown/70 mb-8 sm:mb-10 max-w-prose text-sm sm:text-base">
         Everything below is prepared fresh daily. Add items to your cart, then check out —
         no account required.
       </p>

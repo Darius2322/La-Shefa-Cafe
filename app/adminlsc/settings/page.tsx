@@ -141,7 +141,7 @@ export default function AdminSettingsPage() {
 
   return (
     <div className="max-w-2xl">
-      <h1 className="font-display text-3xl text-brown mb-2">Site Settings</h1>
+      <h1 className="font-display text-display-md text-brown mb-2">Site Settings</h1>
       {savedMsg && <p className="text-teal text-sm mb-4">{savedMsg}</p>}
 
       <SubTabs

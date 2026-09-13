@@ -52,7 +52,7 @@ export default function AdminCakesPage() {
 
   return (
     <div>
-      <h1 className="font-display text-3xl text-brown mb-6">Cake Requests</h1>
+      <h1 className="font-display text-display-md text-brown mb-6">Cake Requests</h1>
       {loading ? (
         <p className="text-brown/50 text-sm">Loading…</p>
       ) : requests.length === 0 ? (

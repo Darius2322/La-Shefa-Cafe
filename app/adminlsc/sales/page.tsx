@@ -137,7 +137,7 @@ export default function AdminSalesPage() {
 
   return (
     <div>
-      <h1 className="font-display text-3xl text-brown mb-2">Sales</h1>
+      <h1 className="font-display text-display-md text-brown mb-2">Sales</h1>
       <p className="text-sm text-brown/50 mb-6">All completed POS sales and paid online orders, from the database.</p>
 
       <div className="space-y-3 mb-4">

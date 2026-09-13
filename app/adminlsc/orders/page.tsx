@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, Fragment } from "react";
+import { Printer } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 const STATUSES = ["received", "confirmed", "preparing", "ready", "out_for_delivery", "completed", "cancelled"];
@@ -107,7 +108,7 @@ export default function AdminOrdersPage() {
 
   return (
     <div>
-      <h1 className="font-display text-3xl text-brown mb-6">Orders</h1>
+      <h1 className="font-display text-display-md text-brown mb-6">Orders</h1>
 
       <div className="flex flex-wrap gap-2 mb-6">
         <FilterPill active={filter === "all"} onClick={() => setFilter("all")} label="All" />
@@ -225,9 +226,10 @@ export default function AdminOrdersPage() {
                             href={`/adminlsc/orders/receipt/${o.id}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-teal text-xs font-medium hover:underline"
+                            className="text-teal text-xs font-medium hover:underline inline-flex items-center gap-1"
                           >
-                            Print Receipt →
+                            <Printer size={13} strokeWidth={1.75} />
+                            Print Receipt
                           </a>
                         </div>
                       </td>
