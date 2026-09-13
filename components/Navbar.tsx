@@ -33,55 +33,60 @@ export function Navbar({ bookingEnabled = true }: { bookingEnabled?: boolean }) 
   }, [open]);
 
   return (
-    <header className="sticky top-0 z-40 bg-cream/95 backdrop-blur border-b border-brown/10">
-      <div className="container-lsc flex items-center justify-between py-3">
-        <Link href="/" className="flex items-center gap-3" aria-label="La Shefa Cafe home">
-          <Image src="/logo.jpg" alt="La Shefa Cafe" width={44} height={44} className="rounded-sm" />
-          <span className="hidden sm:block">
-            <span className="block font-display text-lg text-teal leading-tight">La Shefa Cafe</span>
-            <span className="block text-[11px] text-brown/50 italic leading-tight">Eat quality, stay healthy</span>
-          </span>
-        </Link>
+    <>
+      <header className="sticky top-0 z-40 bg-cream/95 backdrop-blur border-b border-brown/10">
+        <div className="container-lsc flex items-center justify-between py-3">
+          <Link href="/" className="flex items-center gap-3" aria-label="La Shefa Cafe home">
+            <Image src="/logo.jpg" alt="La Shefa Cafe" width={44} height={44} className="rounded-sm" />
+            <span className="hidden sm:block">
+              <span className="block font-display text-lg text-teal leading-tight">La Shefa Cafe</span>
+              <span className="block text-[11px] text-brown/50 italic leading-tight">Eat quality, stay healthy</span>
+            </span>
+          </Link>
 
-        <nav className="hidden md:flex items-center gap-6 font-body text-[15px] text-brown">
-          {LINKS.map((l) => (
-            <Link key={l.href} href={l.href} className="hover:text-teal transition-colors">
-              {l.label}
+          <nav className="hidden md:flex items-center gap-6 font-body text-[15px] text-brown">
+            {LINKS.map((l) => (
+              <Link key={l.href} href={l.href} className="hover:text-teal transition-colors">
+                {l.label}
+              </Link>
+            ))}
+          </nav>
+
+          <div className="flex items-center gap-3">
+            <Link href="/track" className="hidden sm:inline-block font-body text-sm text-brown hover:text-teal">
+              Track Order
             </Link>
-          ))}
-        </nav>
-
-        <div className="flex items-center gap-3">
-          <Link href="/track" className="hidden sm:inline-block font-body text-sm text-brown hover:text-teal">
-            Track Order
-          </Link>
-          <Link href="/menu" className="hidden sm:inline-block btn-caramel !py-2 !px-4 text-sm">
-            Order Now
-          </Link>
-          <Link href="/checkout" className="relative btn-primary !py-2 !px-4 text-sm" aria-label="View cart">
-            Cart
-            {itemCount > 0 && (
-              <span className="ml-1 inline-flex items-center justify-center h-5 w-5 rounded-full bg-caramel text-brown text-xs font-semibold">
-                {itemCount}
-              </span>
-            )}
-          </Link>
-          <button
-            className="md:hidden flex items-center justify-center w-10 h-10 rounded-sm bg-teal text-cream flex-shrink-0"
-            aria-label="Open menu"
-            aria-expanded={open}
-            onClick={() => setOpen(true)}
-          >
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <line x1="3" y1="6" x2="21" y2="6" />
-              <line x1="3" y1="12" x2="21" y2="12" />
-              <line x1="3" y1="18" x2="21" y2="18" />
-            </svg>
-          </button>
+            <Link href="/menu" className="hidden sm:inline-block btn-caramel !py-2 !px-4 text-sm">
+              Order Now
+            </Link>
+            <Link href="/checkout" className="relative btn-primary !py-2 !px-4 text-sm" aria-label="View cart">
+              Cart
+              {itemCount > 0 && (
+                <span className="ml-1 inline-flex items-center justify-center h-5 w-5 rounded-full bg-caramel text-brown text-xs font-semibold">
+                  {itemCount}
+                </span>
+              )}
+            </Link>
+            <button
+              className="md:hidden flex items-center justify-center w-10 h-10 rounded-sm bg-teal text-cream flex-shrink-0"
+              aria-label="Open menu"
+              aria-expanded={open}
+              onClick={() => setOpen(true)}
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="3" y1="6" x2="21" y2="6" />
+                <line x1="3" y1="12" x2="21" y2="12" />
+                <line x1="3" y1="18" x2="21" y2="18" />
+              </svg>
+            </button>
+          </div>
         </div>
-      </div>
+      </header>
 
-      {/* Full-screen mobile menu overlay */}
+      {/* Full-screen mobile menu overlay — rendered as a SIBLING of <header>, not nested inside
+          it, because <header> has backdrop-blur which makes it a containing block for
+          position:fixed descendants, breaking "fixed inset-0" so it only covered the header's
+          own small bounding box instead of the full viewport. */}
       {open && (
         <div className="fixed inset-0 z-50 bg-teal flex flex-col md:hidden">
           <div className="flex items-center justify-between px-5 py-4 border-b border-cream/15">
@@ -132,6 +137,6 @@ export function Navbar({ bookingEnabled = true }: { bookingEnabled?: boolean }) 
           </div>
         </div>
       )}
-    </header>
+    </>
   );
 }
