@@ -22,7 +22,7 @@ type Stats = {
   todayOrders: number;
   pendingOrders: number;
   todayRevenue: number;
-  pendingReviews: number;
+  hiddenReviews: number;
   pendingBookings: number;
   pendingCakes: number;
 };
@@ -62,7 +62,7 @@ export default function AdminDashboardPage() {
         todayOrders,
         todayRevenue,
         pendingOrders: pendingOrdersRes.count ?? 0,
-        pendingReviews: reviewsRes.count ?? 0,
+        hiddenReviews: reviewsRes.count ?? 0,
         pendingBookings: bookingsRes.count ?? 0,
         pendingCakes: cakesRes.count ?? 0
       });
@@ -198,7 +198,7 @@ export default function AdminDashboardPage() {
           <StatCard icon={ClipboardList} label="Orders Today" value={stats.todayOrders} />
           <StatCard icon={Wallet} label="Revenue Today" value={`KSh ${stats.todayRevenue.toLocaleString()}`} />
           <StatCard icon={Hourglass} label="Pending Orders" value={stats.pendingOrders} href="/adminlsc/orders" />
-          <StatCard icon={Star} label="Pending Reviews" value={stats.pendingReviews} href="/adminlsc/reviews" />
+          <StatCard icon={Star} label="Hidden Reviews" value={stats.hiddenReviews} href="/adminlsc/reviews" />
           <StatCard icon={CalendarCheck} label="Pending Bookings" value={stats.pendingBookings} href="/adminlsc/bookings" />
           <StatCard icon={CakeSlice} label="Pending Cake Requests" value={stats.pendingCakes} href="/adminlsc/orders?tab=cakes" />
         </div>

@@ -12,11 +12,14 @@ import {
   MapPin,
   Copy,
   Check,
+  Plus,
+  MessageCircle,
   X as XIcon
 } from "lucide-react";
 import { useCart } from "@/components/CartProvider";
 import { supabase } from "@/lib/supabase";
 import { getShopLocation, mapsUrlFromLocation } from "@/lib/settings";
+import { waShareLink } from "@/lib/whatsapp";
 import { DatePicker, TimePicker } from "@/components/DateTimePicker";
 
 type Step = "items" | "delivery" | "details" | "confirmation";
@@ -227,6 +230,15 @@ export default function CheckoutPage() {
             >
               Track this order
             </Link>
+            <a
+              href={waShareLink(`My La Shefa Cafe order number is ${placedOrder.order_number}. Track it: ${typeof window !== "undefined" ? window.location.origin : ""}/track?order=${placedOrder.order_number}&phone=${encodeURIComponent(placedOrder.phone)}`)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-outline !text-brown !border-brown/30"
+            >
+              <MessageCircle size={16} strokeWidth={1.75} />
+              Save to WhatsApp
+            </a>
             <Link href="/menu" className="btn-outline !text-brown !border-brown/30">
               Order more
             </Link>
@@ -242,10 +254,16 @@ export default function CheckoutPage() {
       ) : step === "items" ? (
         <div className="space-y-8">
           <section>
-            <h2 className="font-display text-lg sm:text-xl text-brown mb-4 flex items-center gap-2">
-              <ShoppingBag size={18} strokeWidth={1.75} className="text-caramel" />
-              Items
-            </h2>
+            <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
+              <h2 className="font-display text-lg sm:text-xl text-brown flex items-center gap-2">
+                <ShoppingBag size={18} strokeWidth={1.75} className="text-caramel" />
+                Items
+              </h2>
+              <Link href="/menu" className="text-teal text-sm font-medium hover:underline inline-flex items-center gap-1">
+                <Plus size={14} strokeWidth={2} />
+                Add more items
+              </Link>
+            </div>
             <div className="space-y-4">
               {lines.map((l) => (
                 <div key={l.product_id} className="flex items-center justify-between gap-3 divider pt-4">

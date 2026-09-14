@@ -1,14 +1,34 @@
 "use client";
 
-import { useEffect, useState, Fragment, Suspense } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { Printer, Search, MapPin, MessageCircle, ChevronDown, ChevronUp, CalendarClock } from "lucide-react";
+import { Printer, Search, MapPin, MessageCircle, X as XIcon, CalendarClock } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { SubTabs } from "@/components/SubTabs";
 import { CakeRequestsPanel } from "@/components/admin/CakeRequestsPanel";
+import { waLink } from "@/lib/whatsapp";
 
 const STATUSES = ["received", "confirmed", "preparing", "ready", "out_for_delivery", "completed", "cancelled"];
 const PAYMENT_STATUSES = ["unpaid", "paid", "partial", "refunded"];
+
+// Distinct, muted colors per status so the ops team can scan a busy order
+// list at a glance rather than reading each label.
+const STATUS_COLORS: Record<string, string> = {
+  received: "bg-blue-50 text-blue-700 border-blue-200",
+  confirmed: "bg-teal/10 text-teal border-teal/30",
+  preparing: "bg-amber-50 text-amber-700 border-amber-200",
+  ready: "bg-purple-50 text-purple-700 border-purple-200",
+  out_for_delivery: "bg-cyan-50 text-cyan-700 border-cyan-200",
+  completed: "bg-green-50 text-green-700 border-green-200",
+  cancelled: "bg-red-50 text-red-700 border-red-200"
+};
+
+const PAYMENT_COLORS: Record<string, string> = {
+  unpaid: "bg-red-50 text-red-700 border-red-200",
+  paid: "bg-green-50 text-green-700 border-green-200",
+  partial: "bg-amber-50 text-amber-700 border-amber-200",
+  refunded: "bg-brown/10 text-brown border-brown/20"
+};
 
 type Order = {
   id: string;
@@ -33,11 +53,6 @@ function formatDateTime(iso: string) {
   const d = new Date(iso);
   return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) +
     " · " + d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
-}
-
-function waLink(phone: string, text: string) {
-  const digits = phone.replace(/[^\d]/g, "");
-  return `https://wa.me/${digits}?text=${encodeURIComponent(text)}`;
 }
 
 function StatusIcon({ status, className }: { status: string; className?: string }) {
@@ -77,7 +92,7 @@ function AdminOrdersPageInner() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [history, setHistory] = useState<Record<string, HistoryRow[]>>({});
   const [staffNames, setStaffNames] = useState<Record<string, string>>({});
 
@@ -112,7 +127,7 @@ function AdminOrdersPageInner() {
   async function updateStatus(id: string, status: string) {
     await supabase.from("orders").update({ status }).eq("id", id);
     load();
-    if (expandedId === id) loadHistory(id);
+    if (selectedId === id) loadHistory(id);
   }
 
   async function updatePayment(id: string, payment_status: string) {
@@ -120,10 +135,9 @@ function AdminOrdersPageInner() {
     load();
   }
 
-  function toggleExpand(o: Order) {
-    const next = expandedId === o.id ? null : o.id;
-    setExpandedId(next);
-    if (next) loadHistory(o.id);
+  function openOrder(o: Order) {
+    setSelectedId(o.id);
+    loadHistory(o.id);
   }
 
   const statusFiltered = filter === "all" ? orders : orders.filter((o) => o.status === filter);
@@ -133,6 +147,8 @@ function AdminOrdersPageInner() {
         [o.order_number, o.customer_name, o.customer_phone].some((f) => f.toLowerCase().includes(q))
       )
     : statusFiltered;
+
+  const selected = orders.find((o) => o.id === selectedId) ?? null;
 
   return (
     <div>
@@ -145,198 +161,85 @@ function AdminOrdersPageInner() {
             label: "Orders",
             content: (
               <>
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-6">
-        <div className="flex flex-wrap gap-2">
-          <FilterPill active={filter === "all"} onClick={() => setFilter("all")} label="All" />
-          {STATUSES.map((s) => (
-            <FilterPill key={s} active={filter === s} onClick={() => setFilter(s)} label={s.replace(/_/g, " ")} />
-          ))}
-        </div>
-        <div className="relative sm:ml-auto w-full sm:w-64 flex-shrink-0">
-          <Search size={15} strokeWidth={2} className="absolute left-3 top-1/2 -translate-y-1/2 text-brown/40" />
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search order #, name, phone"
-            className="border border-brown/20 rounded-sm pl-9 pr-3 py-2 text-sm bg-white w-full focus:border-teal transition-colors"
-          />
-        </div>
-      </div>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-6">
+                  <div className="flex flex-wrap gap-2">
+                    <FilterPill active={filter === "all"} onClick={() => setFilter("all")} label="All" />
+                    {STATUSES.map((s) => (
+                      <FilterPill key={s} active={filter === s} onClick={() => setFilter(s)} label={s.replace(/_/g, " ")} />
+                    ))}
+                  </div>
+                  <div className="relative sm:ml-auto w-full sm:w-64 flex-shrink-0">
+                    <Search size={15} strokeWidth={2} className="absolute left-3 top-1/2 -translate-y-1/2 text-brown/40" />
+                    <input
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      placeholder="Search order #, name, phone"
+                      className="border border-brown/20 rounded-sm pl-9 pr-3 py-2 text-sm bg-white w-full focus:border-teal transition-colors"
+                    />
+                  </div>
+                </div>
 
-      {loading ? (
-        <p className="text-brown/50 text-sm">Loading…</p>
-      ) : filtered.length === 0 ? (
-        <p className="text-brown/50 text-sm">No orders in this view.</p>
-      ) : (
-        <div className="bg-white border border-brown/10 rounded-sm overflow-x-auto">
-          <table className="w-full text-sm min-w-[900px]">
-            <thead className="bg-cream text-brown/60 text-left">
-              <tr>
-                <th className="p-3 font-medium">Order #</th>
-                <th className="p-3 font-medium">Customer</th>
-                <th className="p-3 font-medium">Placed</th>
-                <th className="p-3 font-medium">Type</th>
-                <th className="p-3 font-medium">Total</th>
-                <th className="p-3 font-medium">Status</th>
-                <th className="p-3 font-medium">Payment</th>
-                <th className="p-3 font-medium"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((o) => {
-                const mapsUrl =
-                  o.delivery_lat != null && o.delivery_lng != null
-                    ? `https://www.google.com/maps/search/?api=1&query=${o.delivery_lat},${o.delivery_lng}`
-                    : o.delivery_address
-                    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(o.delivery_address)}`
-                    : null;
-                const lastHandler = history[o.id]?.slice(-1)[0]?.changed_by;
-
-                return (
-                  <Fragment key={o.id}>
-                    <tr
-                      className="border-t border-brown/10 cursor-pointer hover:bg-cream/40 transition-colors"
-                      onClick={() => toggleExpand(o)}
-                    >
-                      <td className="p-3 text-teal font-medium whitespace-nowrap">{o.order_number}</td>
-                      <td className="p-3 text-brown">
-                        <p>{o.customer_name}</p>
-                        <p className="text-xs text-brown/50">{o.customer_phone}</p>
-                      </td>
-                      <td className="p-3 text-brown/70 text-xs whitespace-nowrap">{formatDateTime(o.created_at)}</td>
-                      <td className="p-3 text-brown capitalize">{o.fulfillment_type}</td>
-                      <td className="p-3 text-brown whitespace-nowrap">KSh {Number(o.total).toLocaleString()}</td>
-                      <td className="p-3" onClick={(e) => e.stopPropagation()}>
-                        <select
-                          value={o.status}
-                          onChange={(e) => updateStatus(o.id, e.target.value)}
-                          className="border border-brown/20 rounded-sm text-xs px-2 py-1 bg-white capitalize"
-                        >
-                          {STATUSES.map((s) => (
-                            <option key={s} value={s}>{s.replace(/_/g, " ")}</option>
-                          ))}
-                        </select>
-                      </td>
-                      <td className="p-3" onClick={(e) => e.stopPropagation()}>
-                        <select
-                          value={o.payment_status}
-                          onChange={(e) => updatePayment(o.id, e.target.value)}
-                          className="border border-brown/20 rounded-sm text-xs px-2 py-1 bg-white capitalize"
-                        >
-                          {PAYMENT_STATUSES.map((s) => (
-                            <option key={s} value={s}>{s}</option>
-                          ))}
-                        </select>
-                      </td>
-                      <td className="p-3 text-right text-brown/40">
-                        {expandedId === o.id ? <ChevronUp size={16} strokeWidth={1.75} /> : <ChevronDown size={16} strokeWidth={1.75} />}
-                      </td>
-                    </tr>
-                    {expandedId === o.id && (
-                      <tr className="bg-cream/50 border-t border-brown/5">
-                        <td colSpan={8} className="p-5" onClick={(e) => e.stopPropagation()}>
-                          <div className="grid md:grid-cols-3 gap-6">
-                            <div>
-                              <p className="text-xs font-semibold text-brown/60 mb-3 uppercase tracking-wide">Status History</p>
-                              {!history[o.id] ? (
-                                <p className="text-xs text-brown/40">Loading…</p>
-                              ) : history[o.id].length === 0 ? (
-                                <p className="text-xs text-brown/40">No history recorded.</p>
-                              ) : (
-                                <ol className="space-y-3">
-                                  {history[o.id].map((h, i) => (
-                                    <li key={i} className="flex items-start gap-3">
-                                      <span className="mt-0.5 text-teal flex-shrink-0">
-                                        <StatusIcon status={h.status} className="w-4 h-4" />
-                                      </span>
-                                      <div>
-                                        <p className="text-sm text-brown capitalize font-medium">{h.status.replace(/_/g, " ")}</p>
-                                        <p className="text-xs text-brown/50">
-                                          {formatDateTime(h.changed_at)}
-                                          {h.changed_by && staffNames[h.changed_by] && ` · By ${staffNames[h.changed_by]}`}
-                                        </p>
-                                      </div>
-                                    </li>
-                                  ))}
-                                </ol>
-                              )}
-                            </div>
-
-                            <div>
-                              <p className="text-xs font-semibold text-brown/60 mb-2 uppercase tracking-wide">Order Timing</p>
-                              <p className="text-sm text-brown flex items-center gap-1.5 mb-1">
-                                <CalendarClock size={14} strokeWidth={1.75} className="text-caramel flex-shrink-0" />
-                                Placed {formatDateTime(o.created_at)}
-                              </p>
-                              {o.scheduled_for && (
-                                <p className="text-sm text-brown flex items-center gap-1.5 mb-1">
-                                  <CalendarClock size={14} strokeWidth={1.75} className="text-caramel flex-shrink-0" />
-                                  Requested for {formatDateTime(o.scheduled_for)}
-                                </p>
-                              )}
-                              {lastHandler && staffNames[lastHandler] && (
-                                <p className="text-xs text-brown/50 mt-2">Last handled by {staffNames[lastHandler]}</p>
-                              )}
-                              <div className="flex flex-wrap gap-3 mt-3">
-                                <a
-                                  href={waLink(o.customer_phone, `Hi ${o.customer_name}, this is La Shefa Cafe. Your order number is ${o.order_number}. Let us know if you need anything!`)}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-teal text-xs font-medium hover:underline inline-flex items-center gap-1"
-                                >
-                                  <MessageCircle size={13} strokeWidth={1.75} />
-                                  Send order # via WhatsApp
-                                </a>
-                                <a
-                                  href={`/adminlsc/orders/receipt/${o.id}`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-teal text-xs font-medium hover:underline inline-flex items-center gap-1"
-                                >
-                                  <Printer size={13} strokeWidth={1.75} />
-                                  Print Receipt
-                                </a>
-                              </div>
-                            </div>
-
-                            {(o.fulfillment_type === "delivery" || o.special_instructions) && (
-                              <div>
-                                {o.fulfillment_type === "delivery" && (
-                                  <div className="mb-4">
-                                    <p className="text-xs font-semibold text-brown/60 mb-2 uppercase tracking-wide">Delivery</p>
-                                    <p className="text-sm text-brown mb-2">{o.delivery_address || "No address provided"}</p>
-                                    {mapsUrl && (
-                                      <a
-                                        href={mapsUrl}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="text-teal text-xs font-medium hover:underline inline-flex items-center gap-1"
-                                      >
-                                        <MapPin size={13} strokeWidth={1.75} />
-                                        Open in Google Maps
-                                      </a>
-                                    )}
-                                  </div>
-                                )}
-                                {o.special_instructions && (
-                                  <div>
-                                    <p className="text-xs font-semibold text-brown/60 mb-2 uppercase tracking-wide">Special Instructions</p>
-                                    <p className="text-sm text-brown">{o.special_instructions}</p>
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    )}
-                  </Fragment>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
+                {loading ? (
+                  <p className="text-brown/50 text-sm">Loading…</p>
+                ) : filtered.length === 0 ? (
+                  <p className="text-brown/50 text-sm">No orders in this view.</p>
+                ) : (
+                  <div className="bg-white border border-brown/10 rounded-sm overflow-x-auto">
+                    <table className="w-full text-sm min-w-[900px]">
+                      <thead className="bg-cream text-brown/60 text-left">
+                        <tr>
+                          <th className="p-3 font-medium">Order #</th>
+                          <th className="p-3 font-medium">Customer</th>
+                          <th className="p-3 font-medium">Placed</th>
+                          <th className="p-3 font-medium">Type</th>
+                          <th className="p-3 font-medium">Total</th>
+                          <th className="p-3 font-medium">Status</th>
+                          <th className="p-3 font-medium">Payment</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filtered.map((o) => (
+                          <tr
+                            key={o.id}
+                            className="border-t border-brown/10 cursor-pointer hover:bg-cream/40 transition-colors"
+                            onClick={() => openOrder(o)}
+                          >
+                            <td className="p-3 text-teal font-medium whitespace-nowrap">{o.order_number}</td>
+                            <td className="p-3 text-brown">
+                              <p>{o.customer_name}</p>
+                              <p className="text-xs text-brown/50">{o.customer_phone}</p>
+                            </td>
+                            <td className="p-3 text-brown/70 text-xs whitespace-nowrap">{formatDateTime(o.created_at)}</td>
+                            <td className="p-3 text-brown capitalize">{o.fulfillment_type}</td>
+                            <td className="p-3 text-brown whitespace-nowrap">KSh {Number(o.total).toLocaleString()}</td>
+                            <td className="p-3" onClick={(e) => e.stopPropagation()}>
+                              <select
+                                value={o.status}
+                                onChange={(e) => updateStatus(o.id, e.target.value)}
+                                className={`rounded-full text-xs px-2.5 py-1 capitalize border font-medium ${STATUS_COLORS[o.status] ?? "bg-brown/5 text-brown border-brown/20"}`}
+                              >
+                                {STATUSES.map((s) => (
+                                  <option key={s} value={s}>{s.replace(/_/g, " ")}</option>
+                                ))}
+                              </select>
+                            </td>
+                            <td className="p-3" onClick={(e) => e.stopPropagation()}>
+                              <select
+                                value={o.payment_status}
+                                onChange={(e) => updatePayment(o.id, e.target.value)}
+                                className={`rounded-full text-xs px-2.5 py-1 capitalize border font-medium ${PAYMENT_COLORS[o.payment_status] ?? "bg-brown/5 text-brown border-brown/20"}`}
+                              >
+                                {PAYMENT_STATUSES.map((s) => (
+                                  <option key={s} value={s}>{s}</option>
+                                ))}
+                              </select>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </>
             )
           },
@@ -346,6 +249,135 @@ function AdminOrdersPageInner() {
           }
         ]}
       />
+
+      {selected && (
+        <div
+          className="fixed inset-0 z-50 bg-brown/50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+          onClick={() => setSelectedId(null)}
+        >
+          <div
+            className="bg-white rounded-t-lg sm:rounded-sm w-full sm:max-w-2xl max-h-[90vh] overflow-y-auto shadow-soft-lg"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between p-5 border-b border-brown/10 sticky top-0 bg-white z-10">
+              <div>
+                <p className="text-xs text-brown/50">Order</p>
+                <p className="font-display text-xl text-teal">{selected.order_number}</p>
+              </div>
+              <button onClick={() => setSelectedId(null)} aria-label="Close" className="text-brown/40 hover:text-brown p-1">
+                <XIcon size={20} strokeWidth={2} />
+              </button>
+            </div>
+
+            <div className="p-5">
+              {(() => {
+                const o = selected;
+                const mapsUrl =
+                  o.delivery_lat != null && o.delivery_lng != null
+                    ? `https://www.google.com/maps/search/?api=1&query=${o.delivery_lat},${o.delivery_lng}`
+                    : o.delivery_address
+                    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(o.delivery_address)}`
+                    : null;
+                const lastHandler = history[o.id]?.slice(-1)[0]?.changed_by;
+
+                return (
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div>
+                      <p className="text-xs font-semibold text-brown/60 mb-3 uppercase tracking-wide">Status History</p>
+                      {!history[o.id] ? (
+                        <p className="text-xs text-brown/40">Loading…</p>
+                      ) : history[o.id].length === 0 ? (
+                        <p className="text-xs text-brown/40">No history recorded.</p>
+                      ) : (
+                        <ol className="space-y-3">
+                          {history[o.id].map((h, i) => (
+                            <li key={i} className="flex items-start gap-3">
+                              <span className="mt-0.5 text-teal flex-shrink-0">
+                                <StatusIcon status={h.status} className="w-4 h-4" />
+                              </span>
+                              <div>
+                                <p className="text-sm text-brown capitalize font-medium">{h.status.replace(/_/g, " ")}</p>
+                                <p className="text-xs text-brown/50">
+                                  {formatDateTime(h.changed_at)}
+                                  {h.changed_by && staffNames[h.changed_by] && ` · By ${staffNames[h.changed_by]}`}
+                                </p>
+                              </div>
+                            </li>
+                          ))}
+                        </ol>
+                      )}
+
+                      <div className="mt-6">
+                        <p className="text-xs font-semibold text-brown/60 mb-2 uppercase tracking-wide">Order Timing</p>
+                        <p className="text-sm text-brown flex items-center gap-1.5 mb-1">
+                          <CalendarClock size={14} strokeWidth={1.75} className="text-caramel flex-shrink-0" />
+                          Placed {formatDateTime(o.created_at)}
+                        </p>
+                        {o.scheduled_for && (
+                          <p className="text-sm text-brown flex items-center gap-1.5 mb-1">
+                            <CalendarClock size={14} strokeWidth={1.75} className="text-caramel flex-shrink-0" />
+                            Requested for {formatDateTime(o.scheduled_for)}
+                          </p>
+                        )}
+                        {lastHandler && staffNames[lastHandler] && (
+                          <p className="text-xs text-brown/50 mt-2">Last handled by {staffNames[lastHandler]}</p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div>
+                      {o.fulfillment_type === "delivery" && (
+                        <div className="mb-4">
+                          <p className="text-xs font-semibold text-brown/60 mb-2 uppercase tracking-wide">Delivery</p>
+                          <p className="text-sm text-brown mb-2">{o.delivery_address || "No address provided"}</p>
+                          {mapsUrl && (
+                            <a
+                              href={mapsUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-teal text-xs font-medium hover:underline inline-flex items-center gap-1"
+                            >
+                              <MapPin size={13} strokeWidth={1.75} />
+                              Open in Google Maps
+                            </a>
+                          )}
+                        </div>
+                      )}
+                      {o.special_instructions && (
+                        <div className="mb-4">
+                          <p className="text-xs font-semibold text-brown/60 mb-2 uppercase tracking-wide">Special Instructions</p>
+                          <p className="text-sm text-brown">{o.special_instructions}</p>
+                        </div>
+                      )}
+
+                      <div className="flex flex-wrap gap-3 mt-4 pt-4 border-t border-brown/10">
+                        <a
+                          href={waLink(o.customer_phone, `Hi ${o.customer_name}, this is La Shefa Cafe. Your order number is ${o.order_number}. Let us know if you need anything!`)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-teal text-xs font-medium hover:underline inline-flex items-center gap-1"
+                        >
+                          <MessageCircle size={13} strokeWidth={1.75} />
+                          Send order # via WhatsApp
+                        </a>
+                        <a
+                          href={`/adminlsc/orders/receipt/${o.id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-teal text-xs font-medium hover:underline inline-flex items-center gap-1"
+                        >
+                          <Printer size={13} strokeWidth={1.75} />
+                          Print Receipt
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

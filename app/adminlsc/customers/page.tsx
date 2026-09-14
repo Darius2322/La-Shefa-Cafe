@@ -3,6 +3,7 @@
 import { useEffect, useState, Fragment } from "react";
 import { Search, ChevronDown, ChevronUp, Phone, Mail, MessageCircle } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { waLink } from "@/lib/whatsapp";
 
 type Customer = {
   id: string;
@@ -19,11 +20,6 @@ type CustomerOrder = {
   total: number;
   created_at: string;
 };
-
-function waLink(phone: string, text: string) {
-  const digits = phone.replace(/[^\d]/g, "");
-  return `https://wa.me/${digits}?text=${encodeURIComponent(text)}`;
-}
 
 export default function AdminCustomersPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);

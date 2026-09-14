@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Calendar, Clock, ChevronLeft, ChevronRight } from "lucide-react";
+import { Calendar, Clock, ChevronLeft, ChevronRight, Check } from "lucide-react";
 
 const MONTHS = [
   "January", "February", "March", "April", "May", "June",
@@ -30,6 +30,10 @@ export function DatePicker({
   const [open, setOpen] = useState(false);
   const selected = value ? new Date(value + "T00:00:00") : null;
   const [viewDate, setViewDate] = useState(selected ?? new Date());
+  // Picking a day only stages it here; nothing is committed to the parent
+  // (onChange) until the person taps OK, so a stray tap can't silently
+  // change what was already confirmed.
+  const [draft, setDraft] = useState<Date | null>(selected);
 
   const year = viewDate.getFullYear();
   const month = viewDate.getMonth();
@@ -47,9 +51,19 @@ export function DatePicker({
     return new Date(year, month, day) < min;
   }
 
+  function openPicker() {
+    setDraft(selected);
+    setViewDate(selected ?? new Date());
+    setOpen(true);
+  }
+
   function selectDay(day: number) {
     if (isDisabled(day)) return;
-    onChange(toDateString(new Date(year, month, day)));
+    setDraft(new Date(year, month, day));
+  }
+
+  function confirm() {
+    if (draft) onChange(toDateString(draft));
     setOpen(false);
   }
 
@@ -62,7 +76,7 @@ export function DatePicker({
       {label && <span className="block text-sm font-medium text-brown mb-1">{label}</span>}
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => (open ? setOpen(false) : openPicker())}
         className="w-full flex items-center justify-between border border-brown/20 rounded-sm px-3 py-2.5 bg-white text-left"
       >
         <span className={selected ? "text-brown" : "text-brown/40"}>{displayLabel}</span>
@@ -102,12 +116,12 @@ export function DatePicker({
                 <span key={i} className="text-center text-[11px] text-brown/40 font-medium">{w}</span>
               ))}
             </div>
-            <div className="grid grid-cols-7 gap-1">
+            <div className="grid grid-cols-7 gap-1 mb-3">
               {cells.map((day, i) => {
                 if (day === null) return <span key={i} />;
                 const disabled = isDisabled(day);
-                const isSelected =
-                  selected && selected.getFullYear() === year && selected.getMonth() === month && selected.getDate() === day;
+                const isDraft =
+                  draft && draft.getFullYear() === year && draft.getMonth() === month && draft.getDate() === day;
                 return (
                   <button
                     type="button"
@@ -115,7 +129,7 @@ export function DatePicker({
                     disabled={disabled}
                     onClick={() => selectDay(day)}
                     className={`h-8 w-8 rounded-full text-sm mx-auto ${
-                      isSelected
+                      isDraft
                         ? "bg-teal text-cream font-medium"
                         : disabled
                         ? "text-brown/20 cursor-not-allowed"
@@ -126,6 +140,24 @@ export function DatePicker({
                   </button>
                 );
               })}
+            </div>
+            <div className="flex justify-end gap-2 pt-2 border-t border-brown/10">
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                className="text-sm text-brown/60 px-3 py-1.5"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirm}
+                disabled={!draft}
+                className="btn-primary !py-1.5 !px-4 text-sm disabled:opacity-50"
+              >
+                <Check size={14} strokeWidth={2} />
+                OK
+              </button>
             </div>
           </div>
         </>
@@ -148,22 +180,35 @@ export function TimePicker({
 }) {
   const [open, setOpen] = useState(false);
 
-  let hour12 = 12, minute = "00", meridiem: "AM" | "PM" = "AM";
-  if (value) {
-    const [h, m] = value.split(":").map(Number);
-    meridiem = h >= 12 ? "PM" : "AM";
-    hour12 = h % 12 === 0 ? 12 : h % 12;
-    minute = String(m).padStart(2, "0");
+  function parse(v: string) {
+    if (!v) return { hour12: 12, minute: "00", meridiem: "AM" as const };
+    const [h, m] = v.split(":").map(Number);
+    return {
+      hour12: h % 12 === 0 ? 12 : h % 12,
+      minute: String(m).padStart(2, "0"),
+      meridiem: (h >= 12 ? "PM" : "AM") as "AM" | "PM"
+    };
   }
 
-  function commit(nextHour12: number, nextMinute: string, nextMeridiem: "AM" | "PM") {
-    let h24 = nextHour12 % 12;
-    if (nextMeridiem === "PM") h24 += 12;
-    onChange(`${String(h24).padStart(2, "0")}:${nextMinute}`);
+  const committed = parse(value);
+  // Same staged-draft pattern as DatePicker: taps update the draft only;
+  // OK commits it via onChange.
+  const [draft, setDraft] = useState(committed);
+
+  function openPicker() {
+    setDraft(parse(value));
+    setOpen(true);
+  }
+
+  function confirm() {
+    let h24 = draft.hour12 % 12;
+    if (draft.meridiem === "PM") h24 += 12;
+    onChange(`${String(h24).padStart(2, "0")}:${draft.minute}`);
+    setOpen(false);
   }
 
   const displayLabel = value
-    ? `${hour12}:${minute} ${meridiem}`
+    ? `${committed.hour12}:${committed.minute} ${committed.meridiem}`
     : "Select time";
 
   return (
@@ -171,7 +216,7 @@ export function TimePicker({
       {label && <span className="block text-sm font-medium text-brown mb-1">{label}</span>}
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => (open ? setOpen(false) : openPicker())}
         className="w-full flex items-center justify-between border border-brown/20 rounded-sm px-3 py-2.5 bg-white text-left"
       >
         <span className={value ? "text-brown" : "text-brown/40"}>{displayLabel}</span>
@@ -186,48 +231,59 @@ export function TimePicker({
             onClick={() => setOpen(false)}
             className="fixed inset-0 z-40 cursor-default"
           />
-          <div className="absolute z-50 mt-2 bg-white border border-brown/15 rounded-sm shadow-lg p-3 w-56 flex gap-2">
-            <div className="flex-1 max-h-40 overflow-y-auto">
-              {HOURS.map((h) => (
-                <button
-                  type="button"
-                  key={h}
-                  onClick={() => commit(h, minute, meridiem)}
-                  className={`w-full text-center py-1.5 rounded-sm text-sm ${
-                    hour12 === h ? "bg-teal text-cream" : "text-brown hover:bg-caramel/20"
-                  }`}
-                >
-                  {h}
-                </button>
-              ))}
+          <div className="absolute z-50 mt-2 bg-white border border-brown/15 rounded-sm shadow-lg p-3 w-56">
+            <div className="flex gap-2">
+              <div className="flex-1 max-h-40 overflow-y-auto">
+                {HOURS.map((h) => (
+                  <button
+                    type="button"
+                    key={h}
+                    onClick={() => setDraft((d) => ({ ...d, hour12: h }))}
+                    className={`w-full text-center py-1.5 rounded-sm text-sm ${
+                      draft.hour12 === h ? "bg-teal text-cream" : "text-brown hover:bg-caramel/20"
+                    }`}
+                  >
+                    {h}
+                  </button>
+                ))}
+              </div>
+              <div className="flex-1 max-h-40 overflow-y-auto">
+                {MINUTES.map((m) => (
+                  <button
+                    type="button"
+                    key={m}
+                    onClick={() => setDraft((d) => ({ ...d, minute: m }))}
+                    className={`w-full text-center py-1.5 rounded-sm text-sm ${
+                      draft.minute === m ? "bg-teal text-cream" : "text-brown hover:bg-caramel/20"
+                    }`}
+                  >
+                    {m}
+                  </button>
+                ))}
+              </div>
+              <div className="flex-1 flex flex-col gap-1">
+                {(["AM", "PM"] as const).map((mer) => (
+                  <button
+                    type="button"
+                    key={mer}
+                    onClick={() => setDraft((d) => ({ ...d, meridiem: mer }))}
+                    className={`py-1.5 rounded-sm text-sm ${
+                      draft.meridiem === mer ? "bg-caramel text-brown font-medium" : "text-brown hover:bg-caramel/20"
+                    }`}
+                  >
+                    {mer}
+                  </button>
+                ))}
+              </div>
             </div>
-            <div className="flex-1 max-h-40 overflow-y-auto">
-              {MINUTES.map((m) => (
-                <button
-                  type="button"
-                  key={m}
-                  onClick={() => commit(hour12, m, meridiem)}
-                  className={`w-full text-center py-1.5 rounded-sm text-sm ${
-                    minute === m ? "bg-teal text-cream" : "text-brown hover:bg-caramel/20"
-                  }`}
-                >
-                  {m}
-                </button>
-              ))}
-            </div>
-            <div className="flex-1 flex flex-col gap-1">
-              {(["AM", "PM"] as const).map((mer) => (
-                <button
-                  type="button"
-                  key={mer}
-                  onClick={() => commit(hour12, minute, mer)}
-                  className={`py-1.5 rounded-sm text-sm ${
-                    meridiem === mer ? "bg-caramel text-brown font-medium" : "text-brown hover:bg-caramel/20"
-                  }`}
-                >
-                  {mer}
-                </button>
-              ))}
+            <div className="flex justify-end gap-2 pt-3 mt-2 border-t border-brown/10">
+              <button type="button" onClick={() => setOpen(false)} className="text-sm text-brown/60 px-3 py-1.5">
+                Cancel
+              </button>
+              <button type="button" onClick={confirm} className="btn-primary !py-1.5 !px-4 text-sm">
+                <Check size={14} strokeWidth={2} />
+                OK
+              </button>
             </div>
           </div>
         </>

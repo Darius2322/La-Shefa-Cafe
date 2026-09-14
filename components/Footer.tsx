@@ -106,8 +106,19 @@ export function Footer({
         </div>
       </div>
       <div className="border-t border-cream/15">
-        <div className="container-lsc py-4 text-xs text-cream/60">
-          © {year} La Shefa Cafe. All rights reserved.
+        <div className="container-lsc py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5 text-xs text-cream/60">
+          <span>© {year} La Shefa Cafe. All rights reserved.</span>
+          <span>
+            Built by{" "}
+            <a
+              href="https://dmn-solutions.vercel.app"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-cream/70 hover:text-caramel underline underline-offset-2"
+            >
+              dmn-solutions.vercel.app
+            </a>
+          </span>
         </div>
       </div>
     </footer>
