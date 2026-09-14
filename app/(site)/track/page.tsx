@@ -2,7 +2,7 @@
 
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { PackageSearch } from "lucide-react";
+import { PackageSearch, Pencil, Plus, Minus, X as XIcon, ShoppingBag } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useCart } from "@/components/CartProvider";
 
@@ -72,6 +72,8 @@ function TrackPageInner() {
   const [result, setResult] = useState<TrackResult | null | "not_found">(null);
   const [loading, setLoading] = useState(false);
   const [pastOrders, setPastOrders] = useState<PastOrder[]>([]);
+  const [editingOrder, setEditingOrder] = useState<string | null>(null);
+  const [editedItems, setEditedItems] = useState<PastOrder["items"]>([]);
 
   async function loadPastOrders(phoneNumber: string) {
     const { data } = await supabase.rpc("track_orders_by_phone", { p_phone: phoneNumber });
@@ -80,6 +82,30 @@ function TrackPageInner() {
 
   function reorder(order: PastOrder) {
     order.items.forEach((it) => {
+      if (!it.product_id) return;
+      addItem(
+        { product_id: it.product_id, product_name: it.name, unit_price: it.unit_price },
+        it.quantity
+      );
+    });
+    router.push("/checkout");
+  }
+
+  function startEditingOrder(order: PastOrder) {
+    setEditingOrder(order.order_number);
+    setEditedItems(order.items.map((it) => ({ ...it })));
+  }
+
+  function updateEditedQuantity(index: number, quantity: number) {
+    setEditedItems((prev) =>
+      quantity <= 0
+        ? prev.filter((_, i) => i !== index)
+        : prev.map((it, i) => (i === index ? { ...it, quantity } : it))
+    );
+  }
+
+  function confirmEditedReorder() {
+    editedItems.forEach((it) => {
       if (!it.product_id) return;
       addItem(
         { product_id: it.product_id, product_name: it.name, unit_price: it.unit_price },
@@ -237,16 +263,78 @@ function TrackPageInner() {
                 {pastOrders
                   .filter((o) => o.order_number !== result.order_number)
                   .map((o) => (
-                    <div key={o.order_number} className="flex items-center justify-between gap-3 border border-brown/10 rounded-sm p-3">
-                      <div>
-                        <p className="text-sm font-medium text-teal">{o.order_number}</p>
-                        <p className="text-xs text-brown/50">
-                          {new Date(o.created_at).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })} · KSh {Number(o.total).toLocaleString()}
-                        </p>
+                    <div key={o.order_number} className="border border-brown/10 rounded-sm p-3">
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-medium text-teal">{o.order_number}</p>
+                          <p className="text-xs text-brown/50">
+                            {new Date(o.created_at).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })} · KSh {Number(o.total).toLocaleString()}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-3 flex-shrink-0">
+                          <button
+                            onClick={() => startEditingOrder(o)}
+                            className="text-sm text-brown/60 hover:text-brown font-medium inline-flex items-center gap-1"
+                          >
+                            <Pencil size={13} strokeWidth={1.75} />
+                            Edit
+                          </button>
+                          <button onClick={() => reorder(o)} className="text-sm text-caramel font-medium hover:underline whitespace-nowrap">
+                            Order Again
+                          </button>
+                        </div>
                       </div>
-                      <button onClick={() => reorder(o)} className="text-sm text-caramel font-medium hover:underline whitespace-nowrap">
-                        Order Again
-                      </button>
+
+                      {editingOrder === o.order_number && (
+                        <div className="mt-4 pt-4 border-t border-brown/10">
+                          {editedItems.length === 0 ? (
+                            <p className="text-xs text-brown/50 mb-3">No items left — add some from the menu instead.</p>
+                          ) : (
+                            <ul className="space-y-2 mb-4">
+                              {editedItems.map((it, i) => (
+                                <li key={i} className="flex items-center justify-between gap-3">
+                                  <div className="min-w-0">
+                                    <p className="text-sm text-brown truncate">{it.name}</p>
+                                    <p className="text-xs text-brown/50">KSh {it.unit_price.toLocaleString()} each</p>
+                                  </div>
+                                  <div className="flex items-center gap-2 flex-shrink-0">
+                                    <button
+                                      onClick={() => updateEditedQuantity(i, it.quantity - 1)}
+                                      aria-label={`Decrease ${it.name}`}
+                                      className="h-7 w-7 rounded-sm border border-brown/20 flex items-center justify-center text-brown hover:border-teal transition-colors"
+                                    >
+                                      <Minus size={13} strokeWidth={2} />
+                                    </button>
+                                    <span className="text-sm text-brown w-5 text-center">{it.quantity}</span>
+                                    <button
+                                      onClick={() => updateEditedQuantity(i, it.quantity + 1)}
+                                      aria-label={`Increase ${it.name}`}
+                                      className="h-7 w-7 rounded-sm border border-brown/20 flex items-center justify-center text-brown hover:border-teal transition-colors"
+                                    >
+                                      <Plus size={13} strokeWidth={2} />
+                                    </button>
+                                    <button
+                                      onClick={() => updateEditedQuantity(i, 0)}
+                                      aria-label={`Remove ${it.name}`}
+                                      className="text-brown/40 hover:text-brown p-1"
+                                    >
+                                      <XIcon size={14} strokeWidth={2} />
+                                    </button>
+                                  </div>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                          <button
+                            onClick={confirmEditedReorder}
+                            disabled={editedItems.length === 0}
+                            className="btn-primary !py-2 !px-4 text-sm disabled:opacity-50"
+                          >
+                            <ShoppingBag size={14} strokeWidth={2} />
+                            Add edited order to cart
+                          </button>
+                        </div>
+                      )}
                     </div>
                   ))}
               </div>

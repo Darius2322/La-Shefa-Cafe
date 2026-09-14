@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Search } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 type Permission = { id: number; code: string; description: string | null };
@@ -30,6 +31,7 @@ export default function AdminStaffPage() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [editingPermsFor, setEditingPermsFor] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
 
   async function load() {
     setLoading(true);
@@ -212,8 +214,24 @@ export default function AdminStaffPage() {
       {loading ? (
         <p className="text-brown/50 text-sm">Loading…</p>
       ) : !showForm ? (
-        <div className="space-y-3">
-          {staff.map((s) => (
+        <div>
+          <div className="relative w-full sm:w-64 mb-4">
+            <Search size={15} strokeWidth={2} className="absolute left-3 top-1/2 -translate-y-1/2 text-brown/40" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search staff name, email, role"
+              className="border border-brown/20 rounded-sm pl-9 pr-3 py-2 text-sm bg-white w-full focus:border-teal transition-colors"
+            />
+          </div>
+          <div className="space-y-3">
+          {staff
+            .filter((s) => {
+              const q = search.trim().toLowerCase();
+              if (!q) return true;
+              return [s.full_name, s.email, s.role, s.phone ?? ""].some((f) => f.toLowerCase().includes(q));
+            })
+            .map((s) => (
             <div key={s.id} className="bg-white border border-brown/10 rounded-sm p-4">
               <div className="flex items-center justify-between gap-4 flex-wrap">
                 <div>
@@ -262,6 +280,7 @@ export default function AdminStaffPage() {
               )}
             </div>
           ))}
+          </div>
         </div>
       ) : null}
 

@@ -3,11 +3,13 @@
 import { useState } from "react";
 
 export function SubTabs({
-  tabs
+  tabs,
+  initialIndex = 0
 }: {
   tabs: { label: string; content: React.ReactNode }[];
+  initialIndex?: number;
 }) {
-  const [active, setActive] = useState(0);
+  const [active, setActive] = useState(initialIndex);
 
   return (
     <div>

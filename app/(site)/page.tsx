@@ -135,6 +135,7 @@ export default async function HomePage() {
                   alt={featured[0].name}
                   fill
                   priority
+                  sizes="(max-width: 768px) 90vw, 384px"
                   className="object-cover"
                 />
                 <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-brown-dark/80 to-transparent p-4">
@@ -176,7 +177,13 @@ export default async function HomePage() {
                 <div className="divider pt-3 sm:pt-5 card-hover rounded-sm">
                   {p.image_url && (
                     <div className="relative w-full aspect-square sm:aspect-[4/3] mb-3 sm:mb-4 overflow-hidden rounded-sm">
-                      <Image src={p.image_url} alt={p.name} fill className="object-cover" />
+                      <Image
+                        src={p.image_url}
+                        alt={p.name}
+                        fill
+                        sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                        className="object-cover"
+                      />
                     </div>
                   )}
                   <h3 className="font-display text-base sm:text-xl text-brown leading-tight">{p.name}</h3>

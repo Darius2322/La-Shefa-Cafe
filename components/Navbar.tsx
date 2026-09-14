@@ -3,28 +3,64 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useState } from "react";
-import { Menu, X, ShoppingBag, MapPin } from "lucide-react";
+import {
+  Menu,
+  X,
+  ShoppingBag,
+  MapPin,
+  Home,
+  UtensilsCrossed,
+  CakeSlice,
+  CalendarCheck,
+  Tag,
+  Star,
+  HelpCircle,
+  Info,
+  Phone,
+  Share2,
+  Check
+} from "lucide-react";
 import { useCart } from "./CartProvider";
 
 const BASE_LINKS = [
-  { href: "/", label: "Home" },
-  { href: "/menu", label: "Menu" },
-  { href: "/cakes", label: "Cakes" },
-  { href: "/booking", label: "Booking", requiresFlag: "booking" as const },
-  { href: "/offers", label: "Offers" },
-  { href: "/reviews", label: "Reviews" },
-  { href: "/faq", label: "FAQ" },
-  { href: "/about", label: "About" },
-  { href: "/contact", label: "Contact" }
+  { href: "/", label: "Home", icon: Home },
+  { href: "/menu", label: "Menu", icon: UtensilsCrossed },
+  { href: "/cakes", label: "Cakes", icon: CakeSlice },
+  { href: "/booking", label: "Booking", icon: CalendarCheck, requiresFlag: "booking" as const },
+  { href: "/offers", label: "Offers", icon: Tag },
+  { href: "/reviews", label: "Reviews", icon: Star },
+  { href: "/faq", label: "FAQ", icon: HelpCircle },
+  { href: "/about", label: "About", icon: Info },
+  { href: "/contact", label: "Contact", icon: Phone }
 ];
 
 export function Navbar({ bookingEnabled = true }: { bookingEnabled?: boolean }) {
   const { itemCount } = useCart();
   const [open, setOpen] = useState(false);
+  const [shared, setShared] = useState(false);
 
   const LINKS = BASE_LINKS.filter(
     (l) => l.requiresFlag !== "booking" || bookingEnabled
   );
+
+  async function handleShare() {
+    const shareData = {
+      title: "La Shefa Cafe",
+      text: "Eat quality, stay healthy — check out La Shefa Cafe!",
+      url: typeof window !== "undefined" ? window.location.origin : ""
+    };
+    if (typeof navigator !== "undefined" && navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch {
+        // User cancelled the share sheet — nothing to do.
+      }
+    } else if (typeof navigator !== "undefined" && navigator.clipboard) {
+      await navigator.clipboard.writeText(shareData.url);
+      setShared(true);
+      setTimeout(() => setShared(false), 1800);
+    }
+  }
 
   useEffect(() => {
     document.body.style.overflow = open ? "hidden" : "";
@@ -45,12 +81,25 @@ export function Navbar({ bookingEnabled = true }: { bookingEnabled?: boolean }) 
             </span>
           </Link>
 
-          <nav className="hidden md:flex items-center gap-6 font-body text-[15px] text-brown">
+          <nav className="hidden md:flex items-center gap-5 font-body text-[15px] text-brown">
             {LINKS.map((l) => (
-              <Link key={l.href} href={l.href} className="hover:text-teal transition-colors">
+              <Link key={l.href} href={l.href} className="flex items-center gap-1.5 hover:text-teal transition-colors">
+                <l.icon size={14} strokeWidth={1.75} className="text-brown/40" />
                 {l.label}
               </Link>
             ))}
+            <button
+              onClick={handleShare}
+              className="flex items-center gap-1.5 hover:text-teal transition-colors"
+              aria-label="Share La Shefa Cafe"
+            >
+              {shared ? (
+                <Check size={14} strokeWidth={2} className="text-teal" />
+              ) : (
+                <Share2 size={14} strokeWidth={1.75} className="text-brown/40" />
+              )}
+              {shared ? "Link copied" : "Share"}
+            </button>
           </nav>
 
           <div className="flex items-center gap-3">
@@ -111,11 +160,21 @@ export function Navbar({ bookingEnabled = true }: { bookingEnabled?: boolean }) 
                 key={l.href}
                 href={l.href}
                 onClick={() => setOpen(false)}
-                className="text-cream font-display text-xl py-3 border-b border-cream/10"
+                className="flex items-center gap-3 text-cream font-display text-xl py-3 border-b border-cream/10"
               >
+                <l.icon size={17} strokeWidth={1.75} className="text-caramel flex-shrink-0" />
                 {l.label}
               </Link>
             ))}
+            <button
+              onClick={() => {
+                handleShare();
+              }}
+              className="flex items-center gap-3 text-cream font-display text-xl py-3 border-b border-cream/10 text-left"
+            >
+              <Share2 size={17} strokeWidth={1.75} className="text-caramel flex-shrink-0" />
+              {shared ? "Link copied!" : "Share the Joy"}
+            </button>
             <Link
               href="/track"
               onClick={() => setOpen(false)}

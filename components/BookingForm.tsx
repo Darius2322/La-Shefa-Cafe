@@ -180,7 +180,7 @@ function Stepper({ current }: { current: Step }) {
               >
                 {isDone ? <CheckCircle2 size={16} strokeWidth={2} /> : <Icon size={16} strokeWidth={1.75} />}
               </span>
-              <span className={`hidden sm:inline text-sm font-medium ${isActive ? "text-brown" : isDone ? "text-brown/70" : "text-brown/40"}`}>
+              <span className={`text-xs sm:text-sm font-medium ${isActive ? "text-brown" : isDone ? "text-brown/70" : "text-brown/40"}`}>
                 {s.label}
               </span>
             </div>

@@ -23,7 +23,13 @@ export function ProductCard({ product }: { product: Product }) {
     <div className="divider pt-3 sm:pt-5 flex flex-col card-hover rounded-sm">
       <div className="relative w-full aspect-square sm:aspect-[4/3] mb-2 sm:mb-4 overflow-hidden rounded-sm bg-brown/5">
         {product.image_url ? (
-          <Image src={product.image_url} alt={product.name} fill className="object-cover" />
+          <Image
+            src={product.image_url}
+            alt={product.name}
+            fill
+            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+            className="object-cover"
+          />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
             <span className="text-brown/20 text-xs">No photo</span>

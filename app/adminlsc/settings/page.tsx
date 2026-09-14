@@ -13,11 +13,9 @@ const EMPTY_SOCIAL: Social = { facebook: "", instagram: "", tiktok: "", x: "", y
 export default function AdminSettingsPage() {
   const [contact, setContact] = useState<Contact>(EMPTY_CONTACT);
   const [social, setSocial] = useState<Social>(EMPTY_SOCIAL);
-  const [bookingEnabled, setBookingEnabled] = useState(true);
   const [loading, setLoading] = useState(true);
   const [savingContact, setSavingContact] = useState(false);
   const [savingSocial, setSavingSocial] = useState(false);
-  const [savingFlag, setSavingFlag] = useState(false);
   const [savedMsg, setSavedMsg] = useState<string | null>(null);
 
   const [terms, setTerms] = useState("");
@@ -43,7 +41,6 @@ export default function AdminSettingsPage() {
     setSocial({ ...EMPTY_SOCIAL, ...(map.social_links ?? {}) });
     setLat(map.location?.lat != null ? String(map.location.lat) : "");
     setLng(map.location?.lng != null ? String(map.location.lng) : "");
-    setBookingEnabled(map.feature_flags?.booking_enabled ?? true);
 
     const termsDoc = (legalDocs ?? []).find((d: any) => d.doc_type === "terms");
     const privacyDoc = (legalDocs ?? []).find((d: any) => d.doc_type === "privacy");
@@ -64,18 +61,6 @@ export default function AdminSettingsPage() {
     setSavingContact(true);
     await supabase.from("site_settings").update({ value: contact }).eq("key", "contact");
     setSavingContact(false);
-    flashSaved();
-  }
-
-  async function toggleBooking() {
-    setSavingFlag(true);
-    const next = !bookingEnabled;
-    await supabase
-      .from("site_settings")
-      .update({ value: { booking_enabled: next } })
-      .eq("key", "feature_flags");
-    setBookingEnabled(next);
-    setSavingFlag(false);
     flashSaved();
   }
 
@@ -150,27 +135,6 @@ export default function AdminSettingsPage() {
             label: "General",
             content: (
               <div className="space-y-10">
-                <section>
-                  <h2 className="font-display text-xl text-brown mb-4">Booking Page</h2>
-                  <div className="bg-white border border-brown/10 rounded-sm p-5 flex items-center justify-between">
-                    <div>
-                      <p className="text-brown font-medium">Online table booking</p>
-                      <p className="text-sm text-brown/60">
-                        {bookingEnabled ? "Visible to customers" : "Hidden from customers"}
-                      </p>
-                    </div>
-                    <button
-                      onClick={toggleBooking}
-                      disabled={savingFlag}
-                      className={`px-4 py-2 rounded-sm text-sm font-medium ${
-                        bookingEnabled ? "bg-teal text-cream" : "bg-brown/10 text-brown"
-                      }`}
-                    >
-                      {bookingEnabled ? "Enabled" : "Disabled"}
-                    </button>
-                  </div>
-                </section>
-
                 <section>
                   <h2 className="font-display text-xl text-brown mb-4">Contact Information</h2>
                   <form onSubmit={saveContact} className="bg-white border border-brown/10 rounded-sm p-5 space-y-4">

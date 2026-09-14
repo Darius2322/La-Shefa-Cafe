@@ -5,6 +5,7 @@ import Link from "next/link";
 import {
   CheckCircle2,
   ClipboardList,
+  ShoppingBag,
   Store,
   Truck,
   User,
@@ -18,11 +19,12 @@ import { supabase } from "@/lib/supabase";
 import { getShopLocation, mapsUrlFromLocation } from "@/lib/settings";
 import { DatePicker, TimePicker } from "@/components/DateTimePicker";
 
-type Step = "order" | "details" | "confirmation";
+type Step = "items" | "delivery" | "details" | "confirmation";
 type Contact = { phone?: string; whatsapp?: string; address?: string };
 
 const STEPS: { key: Step; label: string; icon: typeof ClipboardList }[] = [
-  { key: "order", label: "Order", icon: ClipboardList },
+  { key: "items", label: "Items", icon: ShoppingBag },
+  { key: "delivery", label: "Delivery", icon: Truck },
   { key: "details", label: "Your details", icon: User },
   { key: "confirmation", label: "Confirmation", icon: CheckCircle2 }
 ];
@@ -30,7 +32,7 @@ const STEPS: { key: Step; label: string; icon: typeof ClipboardList }[] = [
 export default function CheckoutPage() {
   const { lines, subtotal, updateQuantity, removeItem, clear } = useCart();
 
-  const [step, setStep] = useState<Step>("order");
+  const [step, setStep] = useState<Step>("items");
   const [fulfillment, setFulfillment] = useState<"pickup" | "delivery">("pickup");
   const [scheduledDate, setScheduledDate] = useState("");
   const [scheduledTime, setScheduledTime] = useState("");
@@ -64,7 +66,8 @@ export default function CheckoutPage() {
     load();
   }, []);
 
-  const canContinue =
+  const canContinueItems = lines.length > 0;
+  const canContinueDelivery =
     lines.length > 0 && (fulfillment === "pickup" || deliveryAddress.trim().length > 0);
   const canSubmit = name.trim() && phone.trim() && !submitting;
 
@@ -229,18 +232,18 @@ export default function CheckoutPage() {
             </Link>
           </div>
         </div>
-      ) : lines.length === 0 && step === "order" ? (
+      ) : lines.length === 0 && step === "items" ? (
         <div className="border border-dashed border-brown/25 rounded-sm p-10 text-center">
           <p className="font-display text-xl text-brown mb-2">Your cart is empty</p>
           <Link href="/menu" className="text-teal font-medium hover:underline">
             Browse the menu
           </Link>
         </div>
-      ) : step === "order" ? (
-        <div className="space-y-10">
+      ) : step === "items" ? (
+        <div className="space-y-8">
           <section>
             <h2 className="font-display text-lg sm:text-xl text-brown mb-4 flex items-center gap-2">
-              <ClipboardList size={18} strokeWidth={1.75} className="text-caramel" />
+              <ShoppingBag size={18} strokeWidth={1.75} className="text-caramel" />
               Items
             </h2>
             <div className="space-y-4">
@@ -278,8 +281,22 @@ export default function CheckoutPage() {
             </div>
           </section>
 
+          <button
+            type="button"
+            disabled={!canContinueItems}
+            onClick={() => setStep("delivery")}
+            className="btn-primary disabled:opacity-50"
+          >
+            Continue
+          </button>
+        </div>
+      ) : step === "delivery" ? (
+        <div className="space-y-8 max-w-lg">
           <section>
-            <h2 className="font-display text-lg sm:text-xl text-brown mb-4">How would you like it?</h2>
+            <h2 className="font-display text-lg sm:text-xl text-brown mb-4 flex items-center gap-2">
+              <Truck size={18} strokeWidth={1.75} className="text-caramel" />
+              How would you like it?
+            </h2>
             <div className="grid sm:grid-cols-2 gap-4">
               <button
                 type="button"
@@ -373,14 +390,23 @@ export default function CheckoutPage() {
             </div>
           </section>
 
-          <button
-            type="button"
-            disabled={!canContinue}
-            onClick={() => setStep("details")}
-            className="btn-primary disabled:opacity-50"
-          >
-            Continue
-          </button>
+          <div className="flex gap-4">
+            <button
+              type="button"
+              onClick={() => setStep("items")}
+              className="btn-outline !text-brown !border-brown/30"
+            >
+              Back
+            </button>
+            <button
+              type="button"
+              disabled={!canContinueDelivery}
+              onClick={() => setStep("details")}
+              className="btn-primary disabled:opacity-50"
+            >
+              Continue
+            </button>
+          </div>
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-8 max-w-lg">
@@ -434,7 +460,7 @@ export default function CheckoutPage() {
           <div className="flex gap-4">
             <button
               type="button"
-              onClick={() => setStep("order")}
+              onClick={() => setStep("delivery")}
               className="btn-outline !text-brown !border-brown/30"
             >
               Back
@@ -464,20 +490,20 @@ export default function CheckoutPage() {
 function Stepper({ current }: { current: Step }) {
   const currentIndex = STEPS.findIndex((s) => s.key === current);
   return (
-    <div className="flex items-center gap-2 sm:gap-3 mb-8 sm:mb-10" role="list" aria-label="Checkout progress">
+    <div className="flex items-start gap-1.5 sm:gap-3 mb-8 sm:mb-10" role="list" aria-label="Checkout progress">
       {STEPS.map((s, i) => {
         const isActive = i === currentIndex;
         const isDone = i < currentIndex;
         const Icon = s.icon;
         return (
-          <div key={s.key} className="flex items-center gap-2 sm:gap-3 flex-1 last:flex-none">
+          <div key={s.key} className="flex items-start gap-1.5 sm:gap-3 flex-1 last:flex-none">
             <div
               role="listitem"
               aria-current={isActive ? "step" : undefined}
-              className="flex items-center gap-2"
+              className="flex flex-col sm:flex-row items-center sm:items-center gap-1 sm:gap-2 text-center sm:text-left"
             >
               <span
-                className={`flex items-center justify-center h-8 w-8 sm:h-9 sm:w-9 rounded-full border transition-colors ${
+                className={`flex items-center justify-center h-8 w-8 sm:h-9 sm:w-9 rounded-full border transition-colors flex-shrink-0 ${
                   isActive
                     ? "bg-teal border-teal text-cream"
                     : isDone
@@ -492,7 +518,7 @@ function Stepper({ current }: { current: Step }) {
                 )}
               </span>
               <span
-                className={`hidden sm:inline text-sm font-medium ${
+                className={`text-[11px] leading-tight sm:text-sm font-medium ${
                   isActive ? "text-brown" : isDone ? "text-brown/70" : "text-brown/40"
                 }`}
               >
@@ -500,7 +526,7 @@ function Stepper({ current }: { current: Step }) {
               </span>
             </div>
             {i < STEPS.length - 1 && (
-              <span className={`h-px flex-1 min-w-4 ${isDone ? "bg-caramel/50" : "bg-brown/15"}`} />
+              <span className={`h-px flex-1 min-w-2 mt-4 sm:mt-4 ${isDone ? "bg-caramel/50" : "bg-brown/15"}`} />
             )}
           </div>
         );

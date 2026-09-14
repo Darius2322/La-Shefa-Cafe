@@ -47,13 +47,22 @@ export default function AdminProductsPage() {
 
   async function loadAll() {
     setLoading(true);
-    const [{ data: prods }, { data: cats }, { data: staffRows }] = await Promise.all([
+    const [{ data: prods }, { data: cats }, { data: staffRows }, { data: itemRows }] = await Promise.all([
       supabase.from("products").select("*").order("created_at", { ascending: false }),
       supabase.from("categories").select("id, name").eq("kind", "menu").order("sort_order"),
-      supabase.from("staff").select("id, full_name")
+      supabase.from("staff").select("id, full_name"),
+      // One batched query for all order line items, aggregated client-side by
+      // product, so every row can show its order count without a click —
+      // far cheaper than a per-product query.
+      supabase.from("order_items").select("product_id, quantity")
     ]);
     setProducts((prods as Product[]) ?? []);
     setCategories((cats as Category[]) ?? []);
+    const counts: Record<string, number> = {};
+    (itemRows ?? []).forEach((r: any) => {
+      counts[r.product_id] = (counts[r.product_id] ?? 0) + Number(r.quantity ?? 0);
+    });
+    setSoldCounts(counts);
     setStaffNames(Object.fromEntries((staffRows ?? []).map((s: any) => [s.id, s.full_name])));
     setLoading(false);
 
@@ -299,6 +308,7 @@ export default function AdminProductsPage() {
               <tr>
                 <th className="p-3 font-medium">Name</th>
                 <th className="p-3 font-medium">Price</th>
+                <th className="p-3 font-medium">Orders</th>
                 <th className="p-3 font-medium">Status</th>
                 <th className="p-3 font-medium text-right">Actions</th>
               </tr>
@@ -309,6 +319,7 @@ export default function AdminProductsPage() {
                   <tr className="border-t border-brown/10">
                     <td className="p-3 text-brown">{p.name}</td>
                     <td className="p-3 text-brown">KSh {Number(p.price).toLocaleString()}</td>
+                    <td className="p-3 text-brown/70">{soldCounts[p.id] ?? 0} sold</td>
                     <td className="p-3 space-x-2">
                       {p.is_hidden && <Badge label="Hidden" />}
                       {!p.is_available && <Badge label="Unavailable" />}
@@ -346,7 +357,7 @@ export default function AdminProductsPage() {
                   </tr>
                   {expandedId === p.id && (
                     <tr className="bg-cream/50 border-t border-brown/5">
-                      <td colSpan={4} className="p-4 text-xs text-brown/70">
+                      <td colSpan={5} className="p-4 text-xs text-brown/70">
                         <div className="grid sm:grid-cols-3 gap-3">
                           <p>Created: {new Date(p.created_at).toLocaleDateString()} at {new Date(p.created_at).toLocaleTimeString()}</p>
                           <p>Added by: {p.created_by ? staffNames[p.created_by] ?? "Unknown staff" : "Not recorded"}</p>

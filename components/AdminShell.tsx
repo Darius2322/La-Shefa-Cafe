@@ -14,7 +14,8 @@ const NAV = [
   { href: "/adminlsc/pos", label: "Mini POS", icon: "cart", permission: "pos.use" },
   { href: "/adminlsc/products", label: "Menu", icon: "box", permission: "products.manage" },
   { href: "/adminlsc/bookings", label: "Bookings", icon: "calendar", permission: "bookings.manage" },
-  { href: "/adminlsc/cakes", label: "Cake Requests", icon: "cake", permission: "cakes.manage" },
+  { href: "/adminlsc/customers", label: "Customers", icon: "users", permission: "orders.view" },
+  { href: "/adminlsc/complaints", label: "Complaints", icon: "flag", permission: "reviews.manage" },
   { href: "/adminlsc/offers", label: "Offers", icon: "tag", permission: "reviews.manage" },
   { href: "/adminlsc/reviews", label: "Reviews", icon: "star", permission: "reviews.manage" },
   { href: "/adminlsc/staff", label: "Staff", icon: "users", permission: "staff.manage" },
@@ -53,6 +54,8 @@ function NavIcon({ name, className }: { name: string; className?: string }) {
       return <svg {...common}><line x1="8" y1="6" x2="20" y2="6" /><line x1="8" y1="12" x2="20" y2="12" /><line x1="8" y1="18" x2="20" y2="18" /><circle cx="4.5" cy="6" r="1" fill="currentColor" stroke="none" /><circle cx="4.5" cy="12" r="1" fill="currentColor" stroke="none" /><circle cx="4.5" cy="18" r="1" fill="currentColor" stroke="none" /></svg>;
     case "settings":
       return <svg {...common}><circle cx="12" cy="12" r="3" /><path d="M19.4 13.5a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6V19.5a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.6-1H4.5a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.6-1.1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H10a1.7 1.7 0 0 0 1-1.6V4.5a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V10a1.7 1.7 0 0 0 1.6 1h.1a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.6 1z" /></svg>;
+    case "flag":
+      return <svg {...common}><path d="M5 21V4" /><path d="M5 4.5h13l-3 4.5 3 4.5H5" /></svg>;
     default:
       return <svg {...common}><circle cx="12" cy="12" r="8" /></svg>;
   }
