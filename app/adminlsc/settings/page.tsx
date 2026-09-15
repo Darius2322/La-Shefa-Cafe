@@ -29,10 +29,14 @@ export default function AdminSettingsPage() {
   const [savingLocation, setSavingLocation] = useState(false);
   const [locating, setLocating] = useState(false);
 
+  const [printMode, setPrintMode] = useState<"manual" | "automatic">("manual");
+  const [receiptWidth, setReceiptWidth] = useState<"screen" | "58mm" | "80mm">("80mm");
+  const [savingReceipt, setSavingReceipt] = useState(false);
+
   async function load() {
     setLoading(true);
     const [{ data: settings }, { data: legalDocs }] = await Promise.all([
-      supabase.from("site_settings").select("*").in("key", ["contact", "feature_flags", "social_links", "location"]),
+      supabase.from("site_settings").select("*").in("key", ["contact", "feature_flags", "social_links", "location", "receipt_settings"]),
       supabase.from("legal_documents").select("*").eq("is_current", true)
     ]);
 
@@ -41,6 +45,8 @@ export default function AdminSettingsPage() {
     setSocial({ ...EMPTY_SOCIAL, ...(map.social_links ?? {}) });
     setLat(map.location?.lat != null ? String(map.location.lat) : "");
     setLng(map.location?.lng != null ? String(map.location.lng) : "");
+    setPrintMode(map.receipt_settings?.print_mode ?? "manual");
+    setReceiptWidth(map.receipt_settings?.width ?? "80mm");
 
     const termsDoc = (legalDocs ?? []).find((d: any) => d.doc_type === "terms");
     const privacyDoc = (legalDocs ?? []).find((d: any) => d.doc_type === "privacy");
@@ -100,6 +106,17 @@ export default function AdminSettingsPage() {
       .update({ value: { lat: lat ? Number(lat) : null, lng: lng ? Number(lng) : null } })
       .eq("key", "location");
     setSavingLocation(false);
+    flashSaved();
+  }
+
+  async function saveReceiptSettings() {
+    setSavingReceipt(true);
+    // upsert (not update): "receipt_settings" is a new settings key that may
+    // not have a row yet on projects created before this feature existed.
+    await supabase
+      .from("site_settings")
+      .upsert({ key: "receipt_settings", value: { print_mode: printMode, width: receiptWidth } }, { onConflict: "key" });
+    setSavingReceipt(false);
     flashSaved();
   }
 
@@ -272,6 +289,63 @@ export default function AdminSettingsPage() {
                   </div>
                 </section>
               </div>
+            )
+          },
+          {
+            label: "Receipts",
+            content: (
+              <section>
+                <h2 className="font-display text-xl text-brown mb-4">Receipt Printing</h2>
+                <div className="bg-white border border-brown/10 rounded-sm p-5 space-y-6 max-w-md">
+                  <div>
+                    <span className="block text-sm font-medium text-brown mb-2">Printing mode</span>
+                    <div className="flex gap-2">
+                      {(["manual", "automatic"] as const).map((m) => (
+                        <button
+                          key={m}
+                          onClick={() => setPrintMode(m)}
+                          className={`px-4 py-2 rounded-sm text-sm font-medium capitalize transition-colors ${
+                            printMode === m ? "bg-teal text-cream" : "bg-brown/5 text-brown"
+                          }`}
+                        >
+                          {m}
+                        </button>
+                      ))}
+                    </div>
+                    {printMode === "automatic" && (
+                      <p className="text-xs text-brown/50 mt-2">
+                        The receipt will open and trigger your browser's print dialog right after a POS sale completes.
+                        Browsers can't silently print without that dialog — the cashier still confirms the print.
+                        For true silent printing, a local print-bridge/printer integration needs to be added on the till device.
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <span className="block text-sm font-medium text-brown mb-2">Default receipt width</span>
+                    <div className="flex gap-2">
+                      {(["screen", "58mm", "80mm"] as const).map((w) => (
+                        <button
+                          key={w}
+                          onClick={() => setReceiptWidth(w)}
+                          className={`px-4 py-2 rounded-sm text-sm font-medium capitalize transition-colors ${
+                            receiptWidth === w ? "bg-teal text-cream" : "bg-brown/5 text-brown"
+                          }`}
+                        >
+                          {w === "screen" ? "Screen" : w}
+                        </button>
+                      ))}
+                    </div>
+                    <p className="text-xs text-brown/50 mt-2">
+                      Staff can still switch the width on any individual receipt before printing — this is just the default.
+                    </p>
+                  </div>
+
+                  <button onClick={saveReceiptSettings} disabled={savingReceipt} className="btn-primary disabled:opacity-50">
+                    {savingReceipt ? "Saving…" : "Save Receipt Settings"}
+                  </button>
+                </div>
+              </section>
             )
           }
         ]}

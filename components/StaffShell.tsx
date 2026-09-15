@@ -46,6 +46,11 @@ export function StaffShell({ children }: { children: React.ReactNode }) {
         return;
       }
 
+      supabase.from("staff").update({ last_active_at: new Date().toISOString() }).eq("id", staffRow.id).then(
+        () => {},
+        () => {}
+      );
+
       const admin = staffRow.role === "admin";
       let permSet = new Set<string>();
       if (!admin) {

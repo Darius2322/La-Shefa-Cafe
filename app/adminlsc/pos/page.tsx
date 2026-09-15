@@ -21,6 +21,7 @@ export default function AdminPosPage() {
   const [completing, setCompleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastSale, setLastSale] = useState<{ id: string; sale_number: string; change: number } | null>(null);
+  const [autoPrintReceipts, setAutoPrintReceipts] = useState(false);
 
   const [heldSales, setHeldSales] = useState<HeldSale[]>([]);
   const [showHeld, setShowHeld] = useState(false);
@@ -46,6 +47,12 @@ export default function AdminPosPage() {
       .order("name")
       .then(({ data }) => setProducts((data as Product[]) ?? []));
     loadHeldSales();
+    supabase
+      .from("site_settings")
+      .select("value")
+      .eq("key", "receipt_settings")
+      .maybeSingle()
+      .then(({ data }) => setAutoPrintReceipts(data?.value?.print_mode === "automatic"));
 
     setIsOnline(navigator.onLine);
     setQueuedCount(getQueuedSales().length);
@@ -295,6 +302,7 @@ export default function AdminPosPage() {
     setDiscount(0);
     setAmountPaid("");
     setCompleting(false);
+    if (autoPrintReceipts) printReceipt(sale.id);
   }
 
   function printReceipt(saleId: string) {

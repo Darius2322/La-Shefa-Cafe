@@ -4,6 +4,7 @@ import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { DatePicker, TimePicker } from "@/components/DateTimePicker";
 import { CakeSlice, CheckCircle2, ImagePlus, X as XIcon } from "lucide-react";
+import { PaymentMethodsInfo } from "@/components/PaymentMethodsInfo";
 
 const CAKE_TYPES = ["Birthday", "Wedding", "Anniversary", "Graduation", "Custom"];
 
@@ -97,9 +98,10 @@ export default function CakesPage() {
           <p className="text-sm text-brown/60 mb-1">Request number</p>
           <p className="font-display text-2xl text-teal">{confirmation}</p>
         </div>
-        <p className="text-brown/70 text-sm">
+        <p className="text-brown/70 text-sm mb-6">
           We'll confirm details and pricing with you by phone. Keep your request number for reference.
         </p>
+        <PaymentMethodsInfo title="Payment Options" />
       </div>
     );
   }

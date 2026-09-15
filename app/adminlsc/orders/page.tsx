@@ -7,28 +7,9 @@ import { supabase } from "@/lib/supabase";
 import { SubTabs } from "@/components/SubTabs";
 import { CakeRequestsPanel } from "@/components/admin/CakeRequestsPanel";
 import { waLink } from "@/lib/whatsapp";
-
-const STATUSES = ["received", "confirmed", "preparing", "ready", "out_for_delivery", "completed", "cancelled"];
-const PAYMENT_STATUSES = ["unpaid", "paid", "partial", "refunded"];
-
-// Distinct, muted colors per status so the ops team can scan a busy order
-// list at a glance rather than reading each label.
-const STATUS_COLORS: Record<string, string> = {
-  received: "bg-blue-50 text-blue-700 border-blue-200",
-  confirmed: "bg-teal/10 text-teal border-teal/30",
-  preparing: "bg-amber-50 text-amber-700 border-amber-200",
-  ready: "bg-purple-50 text-purple-700 border-purple-200",
-  out_for_delivery: "bg-cyan-50 text-cyan-700 border-cyan-200",
-  completed: "bg-green-50 text-green-700 border-green-200",
-  cancelled: "bg-red-50 text-red-700 border-red-200"
-};
-
-const PAYMENT_COLORS: Record<string, string> = {
-  unpaid: "bg-red-50 text-red-700 border-red-200",
-  paid: "bg-green-50 text-green-700 border-green-200",
-  partial: "bg-amber-50 text-amber-700 border-amber-200",
-  refunded: "bg-brown/10 text-brown border-brown/20"
-};
+import { QrCode } from "@/components/QrCode";
+import { StatusLegend } from "@/components/StatusLegend";
+import { ORDER_STATUSES as STATUSES, PAYMENT_STATUSES, STATUS_COLORS, PAYMENT_COLORS, statusLabel } from "@/lib/orderStatus";
 
 type Order = {
   id: string;
@@ -95,6 +76,10 @@ function AdminOrdersPageInner() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [history, setHistory] = useState<Record<string, HistoryRow[]>>({});
   const [staffNames, setStaffNames] = useState<Record<string, string>>({});
+  const [trackingTokens, setTrackingTokens] = useState<Record<string, string>>({});
+  const [staffList, setStaffList] = useState<{ id: string; full_name: string }[]>([]);
+  const [assignments, setAssignments] = useState<Record<string, string | null>>({});
+  const [assigning, setAssigning] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -104,10 +89,11 @@ function AdminOrdersPageInner() {
         .select("id, order_number, customer_name, customer_phone, fulfillment_type, delivery_address, delivery_lat, delivery_lng, scheduled_for, status, payment_status, total, special_instructions, created_at")
         .order("created_at", { ascending: false })
         .limit(100),
-      supabase.from("staff").select("auth_user_id, full_name")
+      supabase.from("staff").select("id, auth_user_id, full_name")
     ]);
     setOrders((data as Order[]) ?? []);
     setStaffNames(Object.fromEntries((staffRows ?? []).map((s: any) => [s.auth_user_id, s.full_name])));
+    setStaffList((staffRows ?? []).map((s: any) => ({ id: s.id, full_name: s.full_name })).filter((s: any) => s.id));
     setLoading(false);
   }
 
@@ -138,6 +124,51 @@ function AdminOrdersPageInner() {
   function openOrder(o: Order) {
     setSelectedId(o.id);
     loadHistory(o.id);
+    // Best-effort: tracking_token and assigned_staff_id only exist once
+    // migrations/002 has been run. select("*") on this single row so a
+    // missing column never errors the query.
+    supabase
+      .from("orders")
+      .select("*")
+      .eq("id", o.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.tracking_token) {
+          setTrackingTokens((prev) => ({ ...prev, [o.id]: data.tracking_token }));
+        }
+        setAssignments((prev) => ({ ...prev, [o.id]: data?.assigned_staff_id ?? null }));
+      });
+  }
+
+  async function assignOrder(orderId: string, staffId: string | null) {
+    setAssigning(true);
+    const previous = assignments[orderId] ?? null;
+    const { data: auth } = await supabase.auth.getUser();
+    const { data: me } = await supabase
+      .from("staff")
+      .select("id")
+      .eq("auth_user_id", auth?.user?.id)
+      .maybeSingle();
+
+    const { error } = await supabase
+      .from("orders")
+      .update({
+        assigned_staff_id: staffId,
+        assigned_by: me?.id ?? null,
+        assigned_at: staffId ? new Date().toISOString() : null
+      })
+      .eq("id", orderId);
+
+    if (!error) {
+      setAssignments((prev) => ({ ...prev, [orderId]: staffId }));
+      await supabase.from("order_assignment_history").insert({
+        order_id: orderId,
+        staff_id: staffId,
+        assigned_by: me?.id ?? null,
+        action: staffId ? (previous ? "reassigned" : "assigned") : "unassigned"
+      });
+    }
+    setAssigning(false);
   }
 
   const statusFiltered = filter === "all" ? orders : orders.filter((o) => o.status === filter);
@@ -161,7 +192,7 @@ function AdminOrdersPageInner() {
             label: "Orders",
             content: (
               <>
-                <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-6">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-3">
                   <div className="flex flex-wrap gap-2">
                     <FilterPill active={filter === "all"} onClick={() => setFilter("all")} label="All" />
                     {STATUSES.map((s) => (
@@ -177,6 +208,9 @@ function AdminOrdersPageInner() {
                       className="border border-brown/20 rounded-sm pl-9 pr-3 py-2 text-sm bg-white w-full focus:border-teal transition-colors"
                     />
                   </div>
+                </div>
+                <div className="mb-6">
+                  <StatusLegend />
                 </div>
 
                 {loading ? (
@@ -326,7 +360,27 @@ function AdminOrdersPageInner() {
                     </div>
 
                     <div>
-                      {o.fulfillment_type === "delivery" && (
+                      <div className="mb-4">
+                      <p className="text-xs font-semibold text-brown/60 mb-2 uppercase tracking-wide">Assigned Staff</p>
+                      <select
+                        value={assignments[o.id] ?? ""}
+                        disabled={assigning}
+                        onChange={(e) => assignOrder(o.id, e.target.value || null)}
+                        className="w-full border border-brown/20 rounded-sm text-sm px-3 py-2 bg-white disabled:opacity-50"
+                      >
+                        <option value="">Unassigned</option>
+                        {staffList.map((s) => (
+                          <option key={s.id} value={s.id}>{s.full_name}</option>
+                        ))}
+                      </select>
+                      {assignments[o.id] && (
+                        <p className="text-xs text-brown/50 mt-1.5">
+                          Assigned to {staffList.find((s) => s.id === assignments[o.id])?.full_name ?? "staff member"}
+                        </p>
+                      )}
+                    </div>
+
+                    {o.fulfillment_type === "delivery" && (
                         <div className="mb-4">
                           <p className="text-xs font-semibold text-brown/60 mb-2 uppercase tracking-wide">Delivery</p>
                           <p className="text-sm text-brown mb-2">{o.delivery_address || "No address provided"}</p>
@@ -370,6 +424,23 @@ function AdminOrdersPageInner() {
                           Print Receipt
                         </a>
                       </div>
+
+                      {trackingTokens[o.id] && (
+                        <div className="flex items-center gap-3 mt-4 pt-4 border-t border-brown/10">
+                          <QrCode value={`${typeof window !== "undefined" ? window.location.origin : ""}/track/${trackingTokens[o.id]}`} size={72} />
+                          <div>
+                            <p className="text-xs text-brown/60 mb-1">Customer tracking link</p>
+                            <a
+                              href={`/track/${trackingTokens[o.id]}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-teal text-xs font-medium hover:underline"
+                            >
+                              Open tracking page
+                            </a>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 );

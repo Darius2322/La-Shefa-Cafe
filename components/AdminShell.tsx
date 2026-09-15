@@ -21,6 +21,7 @@ const NAV = [
   { href: "/adminlsc/staff", label: "Staff", icon: "users", permission: "staff.manage" },
   { href: "/adminlsc/analytics", label: "Analytics", icon: "chart", permission: "reports.view" },
   { href: "/adminlsc/logs", label: "Activity Logs", icon: "list", permission: "staff.manage" },
+  { href: "/adminlsc/payments", label: "Payment Settings", icon: "wallet", permission: "settings.manage" },
   { href: "/adminlsc/settings", label: "Site Settings", icon: "settings", permission: "settings.manage" }
 ];
 
@@ -56,6 +57,8 @@ function NavIcon({ name, className }: { name: string; className?: string }) {
       return <svg {...common}><circle cx="12" cy="12" r="3" /><path d="M19.4 13.5a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6V19.5a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.6-1H4.5a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.6-1.1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H10a1.7 1.7 0 0 0 1-1.6V4.5a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V10a1.7 1.7 0 0 0 1.6 1h.1a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.6 1z" /></svg>;
     case "flag":
       return <svg {...common}><path d="M5 21V4" /><path d="M5 4.5h13l-3 4.5 3 4.5H5" /></svg>;
+    case "wallet":
+      return <svg {...common}><rect x="2.5" y="6" width="19" height="13" rx="2" /><path d="M2.5 10h19" /><circle cx="17" cy="14.5" r="1.3" fill="currentColor" stroke="none" /></svg>;
     default:
       return <svg {...common}><circle cx="12" cy="12" r="8" /></svg>;
   }
@@ -93,6 +96,15 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         if (active) router.replace("/adminlsc/login");
         return;
       }
+
+      // Best-effort activity tracking for the staff profile's "Last active"
+      // field. Fire-and-forget: last_active_at only exists once
+      // migrations/002 has been run, and this must never block or break
+      // navigation if it fails for any reason.
+      supabase.from("staff").update({ last_active_at: new Date().toISOString() }).eq("id", staffRow.id).then(
+        () => {},
+        () => {}
+      );
 
       const admin = staffRow.role === "admin";
       let permSet = new Set<string>();

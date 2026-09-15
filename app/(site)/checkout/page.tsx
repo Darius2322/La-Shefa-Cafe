@@ -20,6 +20,8 @@ import { useCart } from "@/components/CartProvider";
 import { supabase } from "@/lib/supabase";
 import { getShopLocation, mapsUrlFromLocation } from "@/lib/settings";
 import { waShareLink } from "@/lib/whatsapp";
+import { QrCode } from "@/components/QrCode";
+import { PaymentMethodsInfo } from "@/components/PaymentMethodsInfo";
 import { DatePicker, TimePicker } from "@/components/DateTimePicker";
 
 type Step = "items" | "delivery" | "details" | "confirmation";
@@ -52,7 +54,7 @@ export default function CheckoutPage() {
   const [instructions, setInstructions] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [placedOrder, setPlacedOrder] = useState<{ order_number: string; phone: string; total: number; itemLines: typeof lines } | null>(null);
+  const [placedOrder, setPlacedOrder] = useState<{ order_number: string; phone: string; total: number; itemLines: typeof lines; trackingToken: string | null } | null>(null);
   const [copied, setCopied] = useState(false);
   const [pickupMapsUrl, setPickupMapsUrl] = useState<string | null>(null);
 
@@ -150,7 +152,12 @@ export default function CheckoutPage() {
           delivery_lat: fulfillment === "delivery" ? deliveryCoords?.lat ?? null : null,
           delivery_lng: fulfillment === "delivery" ? deliveryCoords?.lng ?? null : null
         })
-        .select("id, order_number")
+        // select("*") rather than an explicit column list: this order insert
+        // is the critical revenue path, so it must keep working whether or
+        // not migrations/002 (which adds tracking_token) has been run yet.
+        // An explicit "tracking_token" column reference would 400 the whole
+        // checkout if that migration hasn't landed on this Supabase project.
+        .select("*")
         .single();
       if (orderErr) throw orderErr;
 
@@ -167,7 +174,13 @@ export default function CheckoutPage() {
       if (itemsErr) throw itemsErr;
 
       clear();
-      setPlacedOrder({ order_number: order.order_number, phone: phone.trim(), total: subtotal, itemLines: lines });
+      setPlacedOrder({
+        order_number: order.order_number,
+        phone: phone.trim(),
+        total: subtotal,
+        itemLines: lines,
+        trackingToken: order.tracking_token ?? null
+      });
       setStep("confirmation");
     } catch (err: any) {
       setError("Something went wrong placing your order. Please try again.");
@@ -223,26 +236,45 @@ export default function CheckoutPage() {
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-4">
-            <Link
-              href={`/track?order=${placedOrder.order_number}&phone=${encodeURIComponent(placedOrder.phone)}`}
-              className="btn-primary"
-            >
-              Track this order
-            </Link>
-            <a
-              href={waShareLink(`My La Shefa Cafe order number is ${placedOrder.order_number}. Track it: ${typeof window !== "undefined" ? window.location.origin : ""}/track?order=${placedOrder.order_number}&phone=${encodeURIComponent(placedOrder.phone)}`)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn-outline !text-brown !border-brown/30"
-            >
-              <MessageCircle size={16} strokeWidth={1.75} />
-              Save to WhatsApp
-            </a>
-            <Link href="/menu" className="btn-outline !text-brown !border-brown/30">
-              Order more
-            </Link>
+          <div className="mb-6">
+            <PaymentMethodsInfo />
           </div>
+
+          {(() => {
+            const origin = typeof window !== "undefined" ? window.location.origin : "";
+            const trackingUrl = placedOrder.trackingToken
+              ? `${origin}/track/${placedOrder.trackingToken}`
+              : `${origin}/track?order=${placedOrder.order_number}&phone=${encodeURIComponent(placedOrder.phone)}`;
+            return (
+              <>
+                <div className="divider pt-4 mb-6 flex items-center gap-4">
+                  <QrCode value={trackingUrl} size={96} />
+                  <div>
+                    <p className="text-sm text-brown/70 mb-1">Scan to track this order anytime</p>
+                    <p className="text-xs text-brown/50">No app needed — opens in any phone's camera or browser.</p>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-4">
+                  <Link href={trackingUrl.replace(origin, "")} className="btn-primary">
+                    Track this order
+                  </Link>
+                  <a
+                    href={waShareLink(`My La Shefa Cafe order number is ${placedOrder.order_number}. Track it: ${trackingUrl}`)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn-outline !text-brown !border-brown/30"
+                  >
+                    <MessageCircle size={16} strokeWidth={1.75} />
+                    Save to WhatsApp
+                  </a>
+                  <Link href="/menu" className="btn-outline !text-brown !border-brown/30">
+                    Order more
+                  </Link>
+                </div>
+              </>
+            );
+          })()}
         </div>
       ) : lines.length === 0 && step === "items" ? (
         <div className="border border-dashed border-brown/25 rounded-sm p-10 text-center">

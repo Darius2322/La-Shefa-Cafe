@@ -37,9 +37,22 @@ type SearchResult = {
 
 export default function AdminDashboardPage() {
   const [stats, setStats] = useState<Stats | null>(null);
+  const [me, setMe] = useState<{ full_name: string; role: string } | null>(null);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[] | null>(null);
   const [searching, setSearching] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(async ({ data }) => {
+      if (!data.user) return;
+      const { data: s } = await supabase
+        .from("staff")
+        .select("full_name, role")
+        .eq("auth_user_id", data.user.id)
+        .maybeSingle();
+      if (s) setMe(s);
+    });
+  }, []);
 
   useEffect(() => {
     async function load() {
@@ -142,7 +155,12 @@ export default function AdminDashboardPage() {
 
   return (
     <div>
-      <h1 className="font-display text-display-md text-brown mb-6">Dashboard</h1>
+      <h1 className="font-display text-display-md text-brown mb-1">Dashboard</h1>
+      {me && (
+        <p className="text-sm text-brown/60 mb-6">
+          Welcome back, {me.full_name.split(" ")[0]} · <span className="capitalize">{me.role}</span> · La Shefa Cafe
+        </p>
+      )}
 
       <div className="relative max-w-xl mb-8">
         <Search size={16} strokeWidth={2} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-brown/40" />

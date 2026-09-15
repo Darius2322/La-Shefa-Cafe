@@ -3,26 +3,32 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { Receipt, type ReceiptData } from "@/components/Receipt";
+import { Receipt, type ReceiptData, type ReceiptWidth } from "@/components/Receipt";
 
 export default function PosReceiptPage() {
   const params = useParams();
   const id = params.id as string;
   const [data, setData] = useState<ReceiptData | null>(null);
   const [notFound, setNotFound] = useState(false);
+  const [autoPrint, setAutoPrint] = useState(false);
+  const [width, setWidth] = useState<ReceiptWidth>("80mm");
 
   useEffect(() => {
     async function load() {
-      const [{ data: sale }, { data: items }, { data: contact }] = await Promise.all([
+      const [{ data: sale }, { data: items }, { data: contact }, { data: receiptSettings }] = await Promise.all([
         supabase.from("pos_sales").select("*").eq("id", id).maybeSingle(),
         supabase.from("pos_sale_items").select("product_name, quantity, unit_price, line_total").eq("sale_id", id),
-        supabase.from("site_settings").select("value").eq("key", "contact").maybeSingle()
+        supabase.from("site_settings").select("value").eq("key", "contact").maybeSingle(),
+        supabase.from("site_settings").select("value").eq("key", "receipt_settings").maybeSingle()
       ]);
 
       if (!sale) {
         setNotFound(true);
         return;
       }
+
+      setAutoPrint(receiptSettings?.value?.print_mode === "automatic");
+      setWidth(receiptSettings?.value?.width ?? "80mm");
 
       setData({
         title: "La Shefa Cafe",
@@ -41,10 +47,12 @@ export default function PosReceiptPage() {
         discount: Number(sale.discount ?? 0),
         total: Number(sale.total),
         paymentMethod: sale.payment_method,
+        paymentReference: sale.payment_reference ?? null,
         amountPaid: sale.amount_paid != null ? Number(sale.amount_paid) : null,
         changeDue: sale.change_due != null ? Number(sale.change_due) : null,
         contactPhone: contact?.value?.phone || null,
-        contactAddress: contact?.value?.address || null
+        contactAddress: contact?.value?.address || null,
+        website: typeof window !== "undefined" ? window.location.host : null
       });
     }
     load();
@@ -56,5 +64,5 @@ export default function PosReceiptPage() {
   if (!data) {
     return <p className="p-10 text-center text-brown/60">Loading receipt…</p>;
   }
-  return <Receipt data={data} autoPrint />;
+  return <Receipt data={data} autoPrint={autoPrint} width={width} />;
 }

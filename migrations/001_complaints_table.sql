@@ -1,7 +1,7 @@
 -- Complaints table for the admin "Complaints" menu.
--- Run this once in the Supabase SQL editor (Project → SQL Editor → New query)
--- before the /adminlsc/complaints page will work. Nothing else in the app
--- depends on this migration, so it's safe to run any time.
+-- Run migrations/000_permission_helper.sql FIRST, then this file, in the
+-- Supabase SQL editor (Project → SQL Editor → New query) before the
+-- /adminlsc/complaints page will work.
 
 create table if not exists public.complaints (
   id uuid primary key default gen_random_uuid(),
@@ -24,22 +24,21 @@ create index if not exists complaints_created_at_idx on public.complaints (creat
 
 alter table public.complaints enable row level security;
 
--- Mirrors the pattern used elsewhere in this project: authenticated staff/admin
--- can read and manage complaints. Adjust the role check below if your staff
--- table's permission model differs from the "staff.manage"-style checks used
--- for other admin tables — this policy intentionally errs permissive for any
--- authenticated staff member since complaints are an internal tool only.
-create policy "Staff can view complaints"
+-- Scoped to staff with the "reviews.manage" permission (the same permission
+-- that gates the Complaints nav item in the admin UI) or admins, via the
+-- staff_has_permission() helper from migrations/000. Run 000 before this
+-- file, or these policies will fail to create.
+create policy "Staff with reviews.manage can view complaints"
   on public.complaints for select
   to authenticated
-  using (true);
+  using (public.staff_has_permission('reviews.manage'));
 
-create policy "Staff can insert complaints"
+create policy "Staff with reviews.manage can insert complaints"
   on public.complaints for insert
   to authenticated
-  with check (true);
+  with check (public.staff_has_permission('reviews.manage'));
 
-create policy "Staff can update complaints"
+create policy "Staff with reviews.manage can update complaints"
   on public.complaints for update
   to authenticated
-  using (true);
+  using (public.staff_has_permission('reviews.manage'));

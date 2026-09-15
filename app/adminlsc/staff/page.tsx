@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { Search } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
@@ -236,7 +237,9 @@ export default function AdminStaffPage() {
               <div className="flex items-center justify-between gap-4 flex-wrap">
                 <div>
                   <p className="font-medium text-brown">
-                    {s.full_name}{" "}
+                    <Link href={`/adminlsc/staff/${s.id}`} className="hover:text-teal hover:underline">
+                      {s.full_name}
+                    </Link>{" "}
                     {!s.is_active && <span className="text-xs text-red-700 ml-1">(deactivated)</span>}
                   </p>
                   <p className="text-xs text-brown/50">{s.email} {s.phone && `· ${s.phone}`}</p>
@@ -249,6 +252,9 @@ export default function AdminStaffPage() {
                   >
                     {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
                   </select>
+                  <Link href={`/adminlsc/staff/${s.id}`} className="text-teal hover:underline">
+                    View Profile
+                  </Link>
                   <button onClick={() => setEditingPermsFor(editingPermsFor === s.id ? null : s.id)} className="text-teal hover:underline">
                     Permissions
                   </button>

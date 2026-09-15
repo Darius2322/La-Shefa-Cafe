@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { supabase } from "@/lib/supabase";
+import { PasswordInput } from "@/components/PasswordInput";
 
 export default function StaffLoginPage() {
   const router = useRouter();
@@ -68,9 +69,8 @@ export default function StaffLoginPage() {
           </label>
           <label className="block">
             <span className="block text-sm font-medium text-brown mb-1">Password</span>
-            <input
+            <PasswordInput
               required
-              type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="input"

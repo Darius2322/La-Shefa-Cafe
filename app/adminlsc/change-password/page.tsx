@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { PasswordInput } from "@/components/PasswordInput";
 
 export default function ChangePasswordPage() {
   const [newPassword, setNewPassword] = useState("");
@@ -38,31 +39,31 @@ export default function ChangePasswordPage() {
 
   return (
     <div className="max-w-sm">
-      <h1 className="font-display text-3xl text-brown mb-6">Change Password</h1>
+      <h1 className="font-display text-display-md text-brown mb-6">Change Password</h1>
 
       {success && <p className="text-teal text-sm mb-4">Password updated successfully.</p>}
 
       <form onSubmit={handleSubmit} className="bg-white border border-brown/10 rounded-sm p-5 space-y-4">
         <label className="block">
           <span className="block text-sm font-medium text-brown mb-1">New password</span>
-          <input
+          <PasswordInput
             required
-            type="password"
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
             className="input"
             minLength={8}
+            autoComplete="new-password"
           />
         </label>
         <label className="block">
           <span className="block text-sm font-medium text-brown mb-1">Confirm new password</span>
-          <input
+          <PasswordInput
             required
-            type="password"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             className="input"
             minLength={8}
+            autoComplete="new-password"
           />
         </label>
 
