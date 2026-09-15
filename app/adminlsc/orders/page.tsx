@@ -2,7 +2,7 @@
 
 import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Search } from "lucide-react";
+import { Search, ClipboardList, CakeSlice } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { SubTabs } from "@/components/SubTabs";
 import { CakeRequestsPanel } from "@/components/admin/CakeRequestsPanel";
@@ -12,13 +12,13 @@ import { ORDER_STATUSES as STATUSES, PAYMENT_STATUSES, STATUS_COLORS, PAYMENT_CO
 // Light full-row tint so the whole order row reads as "received" /
 // "preparing" / etc. at a glance, not just the small status pill.
 const ROW_TINT: Record<string, string> = {
-  received: "bg-blue-50/70 hover:bg-blue-50",
-  confirmed: "bg-teal/5 hover:bg-teal/10",
-  preparing: "bg-amber-50/70 hover:bg-amber-50",
-  ready: "bg-purple-50/70 hover:bg-purple-50",
-  out_for_delivery: "bg-cyan-50/70 hover:bg-cyan-50",
-  completed: "bg-green-50/50 hover:bg-green-50",
-  cancelled: "bg-red-50/50 hover:bg-red-50"
+  received: "bg-blue-50 hover:bg-blue-100/70",
+  confirmed: "bg-teal/10 hover:bg-teal/15",
+  preparing: "bg-amber-50 hover:bg-amber-100/70",
+  ready: "bg-purple-50 hover:bg-purple-100/70",
+  out_for_delivery: "bg-cyan-50 hover:bg-cyan-100/70",
+  completed: "bg-green-50 hover:bg-green-100/70",
+  cancelled: "bg-red-50 hover:bg-red-100/70"
 };
 
 type Order = {
@@ -127,6 +127,7 @@ function AdminOrdersPageInner() {
         tabs={[
           {
             label: "Orders",
+            icon: ClipboardList,
             content: (
               <>
                 <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-3">
@@ -223,6 +224,7 @@ function AdminOrdersPageInner() {
           },
           {
             label: "Cake Requests",
+            icon: CakeSlice,
             content: <CakeRequestsPanel />
           }
         ]}

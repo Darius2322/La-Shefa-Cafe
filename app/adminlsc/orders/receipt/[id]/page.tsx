@@ -14,11 +14,12 @@ export default function OrderReceiptPage() {
 
   useEffect(() => {
     async function load() {
-      const [{ data: order }, { data: items }, { data: contact }, { data: receiptSettings }] = await Promise.all([
+      const [{ data: order }, { data: items }, { data: contact }, { data: receiptSettings }, { data: staffRows }] = await Promise.all([
         supabase.from("orders").select("*").eq("id", id).maybeSingle(),
         supabase.from("order_items").select("product_name, quantity, unit_price, line_total").eq("order_id", id),
         supabase.from("site_settings").select("value").eq("key", "contact").maybeSingle(),
-        supabase.from("site_settings").select("value").eq("key", "receipt_settings").maybeSingle()
+        supabase.from("site_settings").select("value").eq("key", "receipt_settings").maybeSingle(),
+        supabase.from("staff").select("id, full_name")
       ]);
 
       if (!order) {
@@ -28,6 +29,9 @@ export default function OrderReceiptPage() {
 
       setWidth(receiptSettings?.value?.width ?? "80mm");
 
+      const handlerId = order.assigned_staff_id ?? null;
+      const handlerName = handlerId ? (staffRows ?? []).find((s: any) => s.id === handlerId)?.full_name ?? null : null;
+
       setData({
         title: "La Shefa Cafe",
         documentLabel: "Order Receipt",
@@ -35,6 +39,7 @@ export default function OrderReceiptPage() {
         date: new Date(order.created_at).toLocaleString("en-GB", {
           day: "2-digit", month: "short", year: "numeric", hour: "numeric", minute: "2-digit"
         }),
+        cashierOrStaff: handlerName,
         customerName: order.customer_name,
         customerPhone: order.customer_phone ?? null,
         items: (items ?? []).map((it: any) => ({
@@ -48,11 +53,16 @@ export default function OrderReceiptPage() {
         paymentMethod: null,
         paymentReference: order.payment_reference ?? null,
         contactPhone: contact?.value?.phone || null,
+        contactWhatsapp: contact?.value?.whatsapp || null,
+        contactEmail: contact?.value?.email || null,
         contactAddress: contact?.value?.address || null,
         website: typeof window !== "undefined" ? window.location.host : null,
         trackingUrl: order.tracking_token && typeof window !== "undefined"
           ? `${window.location.origin}/track/${order.tracking_token}`
-          : null
+          : null,
+        generatedAt: new Date().toLocaleString("en-GB", {
+          day: "2-digit", month: "short", year: "numeric", hour: "numeric", minute: "2-digit"
+        })
       });
     }
     load();

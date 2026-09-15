@@ -12,7 +12,8 @@ import {
   ShoppingBag,
   User,
   Truck,
-  Store
+  Store,
+  Clock3
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { SubTabs } from "@/components/SubTabs";
@@ -187,8 +188,25 @@ export default function OrderDetailPage() {
               <option key={s} value={s}>{s}</option>
             ))}
           </select>
+          <select
+            value={order.assigned_staff_id ?? ""}
+            disabled={assigning}
+            onChange={(e) => assignOrder(e.target.value || null)}
+            title="Assign staff"
+            className="rounded-full text-xs px-3 py-1.5 border font-medium bg-white text-brown border-brown/20 disabled:opacity-50"
+          >
+            <option value="">Unassigned</option>
+            {staffList.map((s) => (
+              <option key={s.id} value={s.id}>{s.full_name}</option>
+            ))}
+          </select>
         </div>
       </div>
+      {order.assigned_staff_id && (
+        <p className="text-xs text-brown/50 -mt-4 mb-6">
+          Assigned to {staffList.find((s) => s.id === order.assigned_staff_id)?.full_name ?? "staff member"}
+        </p>
+      )}
 
       {/* Primary CTAs — always visible, not buried in a tab */}
       <div className="flex flex-wrap gap-3 mb-8">
@@ -222,6 +240,7 @@ export default function OrderDetailPage() {
         tabs={[
           {
             label: "Order",
+            icon: ShoppingBag,
             content: (
               <div className="grid lg:grid-cols-[1fr_320px] gap-6">
                 <div className="bg-white border border-brown/10 rounded-sm p-5">
@@ -271,6 +290,7 @@ export default function OrderDetailPage() {
           },
           {
             label: "Customer & Delivery",
+            icon: User,
             content: (
               <div className="grid sm:grid-cols-2 gap-6 max-w-3xl">
                 <div className="bg-white border border-brown/10 rounded-sm p-5">
@@ -310,26 +330,12 @@ export default function OrderDetailPage() {
                   <p className="text-sm text-brown mb-1">Placed {formatDateTime(order.created_at)}</p>
                   {order.scheduled_for && <p className="text-sm text-brown">Requested for {formatDateTime(order.scheduled_for)}</p>}
                 </div>
-
-                <div className="bg-white border border-brown/10 rounded-sm p-5">
-                  <p className="text-xs font-semibold text-brown/60 mb-3 uppercase tracking-wide">Assigned Staff</p>
-                  <select
-                    value={order.assigned_staff_id ?? ""}
-                    disabled={assigning}
-                    onChange={(e) => assignOrder(e.target.value || null)}
-                    className="w-full border border-brown/20 rounded-sm text-sm px-3 py-2 bg-white disabled:opacity-50"
-                  >
-                    <option value="">Unassigned</option>
-                    {staffList.map((s) => (
-                      <option key={s.id} value={s.id}>{s.full_name}</option>
-                    ))}
-                  </select>
-                </div>
               </div>
             )
           },
           {
             label: "Timeline",
+            icon: Clock3,
             content: (
               <div className="bg-white border border-brown/10 rounded-sm p-5 max-w-xl">
                 {history.length === 0 ? (

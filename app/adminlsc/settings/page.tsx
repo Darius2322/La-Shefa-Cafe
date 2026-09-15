@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Settings as SettingsIcon, MapPin, Share2, FileText, Printer } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { SubTabs } from "@/components/SubTabs";
 
@@ -150,6 +151,7 @@ export default function AdminSettingsPage() {
         tabs={[
           {
             label: "General",
+            icon: SettingsIcon,
             content: (
               <div className="space-y-10">
                 <section>
@@ -187,6 +189,7 @@ export default function AdminSettingsPage() {
           },
           {
             label: "Location",
+            icon: MapPin,
             content: (
               <section>
                 <h2 className="font-display text-xl text-brown mb-4">Shop Location (Map Pin)</h2>
@@ -226,6 +229,7 @@ export default function AdminSettingsPage() {
           },
           {
             label: "Social",
+            icon: Share2,
             content: (
               <section>
                 <h2 className="font-display text-xl text-brown mb-4">Social Media</h2>
@@ -265,6 +269,7 @@ export default function AdminSettingsPage() {
           },
           {
             label: "Legal",
+            icon: FileText,
             content: (
               <div className="space-y-10">
                 <section>
@@ -293,6 +298,7 @@ export default function AdminSettingsPage() {
           },
           {
             label: "Receipts",
+            icon: Printer,
             content: (
               <section>
                 <h2 className="font-display text-xl text-brown mb-4">Receipt Printing</h2>

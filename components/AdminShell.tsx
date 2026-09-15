@@ -127,11 +127,21 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         // Prefix match (not just exact) so nested dynamic routes like
         // /adminlsc/orders/[id] inherit the same permission as their parent
         // nav item (/adminlsc/orders) instead of silently bypassing the check.
+        // EXTRA_ROUTE_PERMISSIONS covers routes that exist but aren't in the
+        // visible NAV — cake request detail pages live under Orders now, so
+        // there's no standalone nav entry for them to inherit from otherwise.
+        const EXTRA_ROUTE_PERMISSIONS: Record<string, string> = {
+          "/adminlsc/cakes": "orders.view"
+        };
         const currentNavItem =
           NAV.find((n) => n.href === pathname) ??
           NAV.filter((n) => n.href !== "/adminlsc" && pathname?.startsWith(n.href + "/"))
             .sort((a, b) => b.href.length - a.href.length)[0];
-        if (!admin && currentNavItem?.permission && !permSet.has(currentNavItem.permission)) {
+        const extraPermission = Object.entries(EXTRA_ROUTE_PERMISSIONS).find(
+          ([prefix]) => pathname === prefix || pathname?.startsWith(prefix + "/")
+        )?.[1];
+        const requiredPermission = currentNavItem?.permission ?? extraPermission;
+        if (!admin && requiredPermission && !permSet.has(requiredPermission)) {
           router.replace("/adminlsc");
           return;
         }

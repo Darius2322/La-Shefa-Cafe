@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Search, UtensilsCrossed } from "lucide-react";
 import { ProductCard } from "./ProductCard";
 import type { Category, Product } from "@/lib/types";
@@ -12,7 +13,9 @@ export function MenuBrowser({
   categories: Category[];
   products: Product[];
 }) {
-  const [activeCategory, setActiveCategory] = useState<string | "all">("all");
+  const searchParams = useSearchParams();
+  const categoryFromUrl = searchParams.get("category");
+  const [activeCategory, setActiveCategory] = useState<string | "all">(categoryFromUrl ?? "all");
   const [query, setQuery] = useState("");
 
   const filtered = useMemo(() => {

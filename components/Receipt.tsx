@@ -24,12 +24,17 @@ export type ReceiptData = {
   amountPaid?: number | null;
   changeDue?: number | null;
   contactPhone?: string | null;
+  contactWhatsapp?: string | null;
+  contactEmail?: string | null;
   contactAddress?: string | null;
   website?: string | null;
   /** Full tracking URL, if this receipt is for an online order with a
    * tracking_token — renders a scannable QR code. Omit for POS/walk-in
    * sales, which have no customer-facing tracking page. */
   trackingUrl?: string | null;
+  /** When this receipt document was generated/printed — distinct from the
+   * original sale/order date, which is `date` above. */
+  generatedAt?: string | null;
 };
 
 export type ReceiptWidth = "screen" | "58mm" | "80mm";
@@ -106,7 +111,9 @@ export function Receipt({
           </div>
           <p className="font-display text-lg text-brown">{data.title}</p>
           {data.contactAddress && <p className="text-xs text-brown/60">{data.contactAddress}</p>}
-          {data.contactPhone && <p className="text-xs text-brown/60">{data.contactPhone}</p>}
+          {data.contactPhone && <p className="text-xs text-brown/60">Tel: {data.contactPhone}</p>}
+          {data.contactWhatsapp && <p className="text-xs text-brown/60">WhatsApp: {data.contactWhatsapp}</p>}
+          {data.contactEmail && <p className="text-xs text-brown/60">{data.contactEmail}</p>}
           {data.website && <p className="text-xs text-brown/60">{data.website}</p>}
         </div>
 
@@ -186,6 +193,9 @@ export function Receipt({
         )}
 
         <p className="text-center text-xs text-brown/50 mt-4">Thank you — eat quality, stay healthy.</p>
+        {data.generatedAt && (
+          <p className="text-center text-[10px] text-brown/35 mt-1">Receipt generated on {data.generatedAt}</p>
+        )}
 
         <div className="print:hidden mt-6 grid grid-cols-3 gap-2">
           <button

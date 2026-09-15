@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Search } from "lucide-react";
+import { Search, MessageCircle } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { waLink } from "@/lib/whatsapp";
 
 type Permission = { id: number; code: string; description: string | null };
 type StaffMember = {
@@ -259,6 +260,20 @@ export default function AdminStaffPage() {
                     Permissions
                   </button>
                   <button onClick={() => resetPassword(s)} className="text-teal hover:underline">Reset Password</button>
+                  {s.phone && (
+                    <a
+                      href={waLink(
+                        s.phone,
+                        `Hi ${s.full_name}, here's your La Shefa Cafe staff login link: ${typeof window !== "undefined" ? window.location.origin : ""}/shefastaff/login\n\nUse your work email and the default password (ask an admin if you haven't changed it yet).`
+                      )}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-teal hover:underline inline-flex items-center gap-1"
+                    >
+                      <MessageCircle size={13} strokeWidth={1.75} />
+                      Send Login Link
+                    </a>
+                  )}
                   <button onClick={() => toggleActive(s)} className={s.is_active ? "text-red-700 hover:underline" : "text-teal hover:underline"}>
                     {s.is_active ? "Deactivate" : "Reactivate"}
                   </button>

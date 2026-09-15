@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { supabase } from "@/lib/supabase";
 import { MenuBrowser } from "@/components/MenuBrowser";
 import type { Category, Product } from "@/lib/types";
@@ -36,7 +37,9 @@ export default async function MenuPage() {
         Everything below is prepared fresh daily. Add items to your cart, then check out —
         no account required.
       </p>
-      <MenuBrowser categories={categories} products={products} />
+      <Suspense fallback={<p className="text-brown/50 text-sm">Loading menu…</p>}>
+        <MenuBrowser categories={categories} products={products} />
+      </Suspense>
     </div>
   );
 }

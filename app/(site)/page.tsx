@@ -11,12 +11,20 @@ import {
   Tag,
   Gift,
   Heart,
-  Sparkles
+  Sparkles,
+  Coffee,
+  UtensilsCrossed,
+  Soup,
+  Sandwich,
+  IceCreamCone,
+  GlassWater,
+  Croissant,
+  type LucideIcon
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { getFeatureFlags } from "@/lib/settings";
 import { Reveal } from "@/components/Reveal";
-import type { Product } from "@/lib/types";
+import type { Product, Category } from "@/lib/types";
 
 const WHY_ITEMS = [
   { label: "Quality Ingredients", icon: Leaf },
@@ -33,7 +41,22 @@ const CAKE_TYPES = [
   { label: "Custom", icon: CakeSlice }
 ];
 
+// No category images exist in the schema, so each category card gets an
+// icon instead — cycled from this set rather than left blank or guessed
+// per exact name, since category names vary per cafe.
+const CATEGORY_ICONS: LucideIcon[] = [Coffee, UtensilsCrossed, Soup, Sandwich, CakeSlice, IceCreamCone, GlassWater, Croissant];
+
 export const revalidate = 60;
+
+async function getMenuCategories() {
+  const { data } = await supabase
+    .from("categories")
+    .select("*")
+    .eq("kind", "menu")
+    .eq("is_active", true)
+    .order("sort_order");
+  return (data as Category[]) ?? [];
+}
 
 async function getFeaturedProducts() {
   const { data } = await supabase
@@ -69,7 +92,8 @@ async function getApprovedReviews() {
 }
 
 export default async function HomePage() {
-  const [featured, offers, reviews, flags] = await Promise.all([
+  const [categories, featured, offers, reviews, flags] = await Promise.all([
+    getMenuCategories(),
     getFeaturedProducts(),
     getActiveOffers(),
     getApprovedReviews(),
@@ -155,6 +179,37 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* Browse by category — icon carousel, since categories have no
+          images in this schema. Deep-links into /menu with that category
+          pre-selected via ?category=, so it's a real shortcut, not just
+          decoration. */}
+      {categories.length > 0 && (
+        <section className="container-lsc py-10 sm:py-14 border-b border-brown/10">
+          <Reveal>
+            <h2 className="font-display text-display-sm sm:text-display-md text-brown mb-6 sm:mb-8">
+              Browse the Menu
+            </h2>
+          </Reveal>
+          <div className="scroll-rail gap-3 sm:gap-4 -mx-5 px-5 sm:mx-0 sm:px-0 sm:flex-wrap">
+            {categories.map((c, i) => {
+              const Icon = CATEGORY_ICONS[i % CATEGORY_ICONS.length];
+              return (
+                <Link
+                  key={c.id}
+                  href={`/menu?category=${c.id}`}
+                  className="flex-shrink-0 w-28 sm:w-32 flex flex-col items-center gap-2 bg-white border border-brown/10 rounded-sm p-4 card-hover"
+                >
+                  <span className="h-10 w-10 rounded-full bg-caramel/15 flex items-center justify-center">
+                    <Icon size={19} strokeWidth={1.75} className="text-caramel" />
+                  </span>
+                  <span className="font-display text-sm text-brown text-center leading-tight">{c.name}</span>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {/* Featured menu */}
       <section className="container-lsc py-12 sm:py-16">

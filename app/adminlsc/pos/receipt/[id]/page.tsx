@@ -15,11 +15,12 @@ export default function PosReceiptPage() {
 
   useEffect(() => {
     async function load() {
-      const [{ data: sale }, { data: items }, { data: contact }, { data: receiptSettings }] = await Promise.all([
+      const [{ data: sale }, { data: items }, { data: contact }, { data: receiptSettings }, { data: staffRows }] = await Promise.all([
         supabase.from("pos_sales").select("*").eq("id", id).maybeSingle(),
         supabase.from("pos_sale_items").select("product_name, quantity, unit_price, line_total").eq("sale_id", id),
         supabase.from("site_settings").select("value").eq("key", "contact").maybeSingle(),
-        supabase.from("site_settings").select("value").eq("key", "receipt_settings").maybeSingle()
+        supabase.from("site_settings").select("value").eq("key", "receipt_settings").maybeSingle(),
+        supabase.from("staff").select("id, full_name")
       ]);
 
       if (!sale) {
@@ -30,6 +31,11 @@ export default function PosReceiptPage() {
       setAutoPrint(receiptSettings?.value?.print_mode === "automatic");
       setWidth(receiptSettings?.value?.width ?? "80mm");
 
+      // Best-effort, same caveat as elsewhere in the app: pos_sales doesn't
+      // have a confirmed cashier-attribution column name.
+      const cashierId = sale.cashier_id ?? sale.staff_id ?? sale.created_by ?? null;
+      const cashierName = cashierId ? (staffRows ?? []).find((s: any) => s.id === cashierId)?.full_name ?? null : null;
+
       setData({
         title: "La Shefa Cafe",
         documentLabel: "Receipt",
@@ -37,6 +43,7 @@ export default function PosReceiptPage() {
         date: new Date(sale.created_at).toLocaleString("en-GB", {
           day: "2-digit", month: "short", year: "numeric", hour: "numeric", minute: "2-digit"
         }),
+        cashierOrStaff: cashierName,
         items: (items ?? []).map((it: any) => ({
           name: it.product_name,
           quantity: it.quantity,
@@ -51,8 +58,13 @@ export default function PosReceiptPage() {
         amountPaid: sale.amount_paid != null ? Number(sale.amount_paid) : null,
         changeDue: sale.change_due != null ? Number(sale.change_due) : null,
         contactPhone: contact?.value?.phone || null,
+        contactWhatsapp: contact?.value?.whatsapp || null,
+        contactEmail: contact?.value?.email || null,
         contactAddress: contact?.value?.address || null,
-        website: typeof window !== "undefined" ? window.location.host : null
+        website: typeof window !== "undefined" ? window.location.host : null,
+        generatedAt: new Date().toLocaleString("en-GB", {
+          day: "2-digit", month: "short", year: "numeric", hour: "numeric", minute: "2-digit"
+        })
       });
     }
     load();

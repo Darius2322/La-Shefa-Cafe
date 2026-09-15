@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Menu, X, LogOut } from "lucide-react";
+import { Menu, X, LogOut, Bell } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 const NAV = [
@@ -26,6 +26,9 @@ export function StaffShell({ children }: { children: React.ReactNode }) {
   const [permissions, setPermissions] = useState<Set<string>>(new Set());
   const [isAdmin, setIsAdmin] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [notifCounts, setNotifCounts] = useState({ newOrders: 0, assignedToMe: 0 });
+  const [myStaffId, setMyStaffId] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -67,12 +70,20 @@ export function StaffShell({ children }: { children: React.ReactNode }) {
         setStaff({ full_name: staffRow.full_name, role: staffRow.role });
         setIsAdmin(admin);
         setPermissions(permSet);
+        setMyStaffId(staffRow.id);
 
+        const EXTRA_ROUTE_PERMISSIONS: Record<string, string> = {
+          "/shefastaff/cakes": "orders.view"
+        };
         const currentNavItem =
           NAV.find((n) => n.href === pathname) ??
           NAV.filter((n) => n.href !== "/shefastaff" && pathname?.startsWith(n.href + "/"))
             .sort((a, b) => b.href.length - a.href.length)[0];
-        if (!admin && currentNavItem?.permission && !permSet.has(currentNavItem.permission)) {
+        const extraPermission = Object.entries(EXTRA_ROUTE_PERMISSIONS).find(
+          ([prefix]) => pathname === prefix || pathname?.startsWith(prefix + "/")
+        )?.[1];
+        const requiredPermission = currentNavItem?.permission ?? extraPermission;
+        if (!admin && requiredPermission && !permSet.has(requiredPermission)) {
           router.replace("/shefastaff");
           return;
         }
@@ -92,6 +103,34 @@ export function StaffShell({ children }: { children: React.ReactNode }) {
       document.body.style.overflow = "";
     };
   }, [mobileOpen]);
+
+  useEffect(() => {
+    if (checking) return;
+    async function loadCounts() {
+      const newOrdersRes = await supabase
+        .from("orders")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "received");
+
+      let assignedToMe = 0;
+      if (myStaffId) {
+        try {
+          const { count, error } = await supabase
+            .from("orders")
+            .select("id", { count: "exact", head: true })
+            .eq("assigned_staff_id", myStaffId)
+            .in("status", ["received", "confirmed", "preparing", "ready"]);
+          assignedToMe = error ? 0 : count ?? 0;
+        } catch {
+          assignedToMe = 0;
+        }
+      }
+      setNotifCounts({ newOrders: newOrdersRes.count ?? 0, assignedToMe });
+    }
+    loadCounts();
+    const interval = setInterval(loadCounts, 60000);
+    return () => clearInterval(interval);
+  }, [checking, myStaffId]);
 
   async function handleLogout() {
     await supabase.auth.signOut();
@@ -134,13 +173,46 @@ export function StaffShell({ children }: { children: React.ReactNode }) {
               </Link>
             ))}
           </nav>
-          <div className="hidden md:flex items-center gap-4 text-sm">
-            <span className="text-cream/60">{staff?.full_name}</span>
-            <Link href="/shefastaff/change-password" className="text-cream/60 hover:text-cream">Change password</Link>
-            <button onClick={handleLogout} className="text-caramel flex items-center gap-1.5">
-              <LogOut size={14} strokeWidth={1.75} />
-              Log out
-            </button>
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <button
+                onClick={() => setNotifOpen((v) => !v)}
+                aria-label="Notifications"
+                className="relative p-1.5"
+              >
+                <Bell size={19} strokeWidth={1.75} />
+                {notifCounts.newOrders + notifCounts.assignedToMe > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 bg-caramel text-brown text-[10px] font-bold rounded-full h-4 w-4 flex items-center justify-center">
+                    {notifCounts.newOrders + notifCounts.assignedToMe > 9 ? "9+" : notifCounts.newOrders + notifCounts.assignedToMe}
+                  </span>
+                )}
+              </button>
+              {notifOpen && (
+                <div className="absolute right-0 mt-2 w-60 bg-white text-brown rounded-sm shadow-lg border border-brown/10 overflow-hidden z-40">
+                  {notifCounts.newOrders > 0 && (
+                    <Link href="/shefastaff/orders" onClick={() => setNotifOpen(false)} className="flex items-center justify-between px-4 py-3 text-sm hover:bg-cream border-b border-brown/5">
+                      <span>New orders</span>
+                      <span className="bg-caramel/20 text-brown rounded-full px-2 py-0.5 text-xs font-medium">{notifCounts.newOrders}</span>
+                    </Link>
+                  )}
+                  {notifCounts.assignedToMe > 0 && (
+                    <Link href="/shefastaff/orders?assigned=me" onClick={() => setNotifOpen(false)} className="flex items-center justify-between px-4 py-3 text-sm hover:bg-cream">
+                      <span>Assigned to me</span>
+                      <span className="bg-caramel/20 text-brown rounded-full px-2 py-0.5 text-xs font-medium">{notifCounts.assignedToMe}</span>
+                    </Link>
+                  )}
+                  {notifCounts.newOrders + notifCounts.assignedToMe === 0 && <p className="p-4 text-sm text-brown/50">Nothing pending.</p>}
+                </div>
+              )}
+            </div>
+            <div className="hidden md:flex items-center gap-4 text-sm">
+              <span className="text-cream/60">{staff?.full_name}</span>
+              <Link href="/shefastaff/change-password" className="text-cream/60 hover:text-cream">Change password</Link>
+              <button onClick={handleLogout} className="text-caramel flex items-center gap-1.5">
+                <LogOut size={14} strokeWidth={1.75} />
+                Log out
+              </button>
+            </div>
           </div>
         </div>
       </header>
