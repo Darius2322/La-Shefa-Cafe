@@ -347,32 +347,32 @@ export default function CheckoutPage() {
               <Truck size={18} strokeWidth={1.75} className="text-caramel" />
               How would you like it?
             </h2>
-            <div className="grid sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4">
               <button
                 type="button"
                 onClick={() => setFulfillment("pickup")}
-                className={`text-left px-5 py-4 rounded-sm border-2 transition-colors card-hover ${
+                className={`text-left px-3 sm:px-5 py-4 rounded-sm border-2 transition-colors card-hover ${
                   fulfillment === "pickup"
                     ? "border-teal bg-teal/5"
                     : "border-brown/15 hover:border-brown/30"
                 }`}
               >
                 <Store size={18} strokeWidth={1.75} className={fulfillment === "pickup" ? "text-teal mb-2" : "text-brown/40 mb-2"} />
-                <p className="font-display text-base sm:text-lg text-brown">Pickup</p>
-                <p className="text-sm text-brown/60 mt-1">Collect your order at the café</p>
+                <p className="font-display text-sm sm:text-lg text-brown">Pickup</p>
+                <p className="text-xs sm:text-sm text-brown/60 mt-1">Collect at the café</p>
               </button>
               <button
                 type="button"
                 onClick={() => setFulfillment("delivery")}
-                className={`text-left px-5 py-4 rounded-sm border-2 transition-colors card-hover ${
+                className={`text-left px-3 sm:px-5 py-4 rounded-sm border-2 transition-colors card-hover ${
                   fulfillment === "delivery"
                     ? "border-teal bg-teal/5"
                     : "border-brown/15 hover:border-brown/30"
                 }`}
               >
                 <Truck size={18} strokeWidth={1.75} className={fulfillment === "delivery" ? "text-teal mb-2" : "text-brown/40 mb-2"} />
-                <p className="font-display text-base sm:text-lg text-brown">Delivery</p>
-                <p className="text-sm text-brown/60 mt-1">We'll bring it to you</p>
+                <p className="font-display text-sm sm:text-lg text-brown">Delivery</p>
+                <p className="text-xs sm:text-sm text-brown/60 mt-1">We'll bring it to you</p>
               </button>
             </div>
 

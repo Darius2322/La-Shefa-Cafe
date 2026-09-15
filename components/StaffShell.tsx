@@ -10,8 +10,10 @@ import { supabase } from "@/lib/supabase";
 const NAV = [
   { href: "/shefastaff", label: "Dashboard", permission: null },
   { href: "/shefastaff/orders", label: "Orders", permission: "orders.view" },
+  { href: "/shefastaff/orders?assigned=me", label: "My Orders", permission: "orders.view" },
   { href: "/shefastaff/pos", label: "Mini POS", permission: "pos.use" },
-  { href: "/shefastaff/sales", label: "Sales", permission: "reports.view" }
+  { href: "/shefastaff/sales", label: "Sales", permission: "reports.view" },
+  { href: "/shefastaff/profile", label: "Profile", permission: null }
 ];
 
 type StaffInfo = { full_name: string; role: string } | null;
@@ -66,7 +68,10 @@ export function StaffShell({ children }: { children: React.ReactNode }) {
         setIsAdmin(admin);
         setPermissions(permSet);
 
-        const currentNavItem = NAV.find((n) => n.href === pathname);
+        const currentNavItem =
+          NAV.find((n) => n.href === pathname) ??
+          NAV.filter((n) => n.href !== "/shefastaff" && pathname?.startsWith(n.href + "/"))
+            .sort((a, b) => b.href.length - a.href.length)[0];
         if (!admin && currentNavItem?.permission && !permSet.has(currentNavItem.permission)) {
           router.replace("/shefastaff");
           return;

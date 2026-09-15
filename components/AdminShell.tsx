@@ -124,7 +124,13 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         // Block direct URL access to pages this staff member isn't authorized for.
         // (Real enforcement is server-side via RLS — this just prevents a confusing
         // blank/broken page rather than acting as the actual security boundary.)
-        const currentNavItem = NAV.find((n) => n.href === pathname);
+        // Prefix match (not just exact) so nested dynamic routes like
+        // /adminlsc/orders/[id] inherit the same permission as their parent
+        // nav item (/adminlsc/orders) instead of silently bypassing the check.
+        const currentNavItem =
+          NAV.find((n) => n.href === pathname) ??
+          NAV.filter((n) => n.href !== "/adminlsc" && pathname?.startsWith(n.href + "/"))
+            .sort((a, b) => b.href.length - a.href.length)[0];
         if (!admin && currentNavItem?.permission && !permSet.has(currentNavItem.permission)) {
           router.replace("/adminlsc");
           return;

@@ -1,4 +1,5 @@
-import { PackageSearch, CheckCircle2, Clock3, MapPin } from "lucide-react";
+import Link from "next/link";
+import { PackageSearch, CheckCircle2, Clock3, MapPin, Search } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 export const metadata = { title: "Track Order — La Shefa Cafe" };
@@ -12,30 +13,19 @@ function formatDateTime(iso: string) {
 }
 
 // Public route reached only via a QR code / link containing a random,
-// unguessable tracking_token — deliberately doesn't require the customer's
-// phone number like the manual /track lookup does, and deliberately doesn't
-// expose the order's database id, full delivery address, or any other
-// customer's data. Only what's needed to answer "where's my order".
+// unguessable tracking_token. Uses the track_order_by_token RPC (SECURITY
+// DEFINER) rather than a direct table read — this project's RLS blocks
+// anonymous reads of the orders table directly (by design, since it holds
+// customer PII), the same reason the phone-based /track lookup already
+// goes through a track_order RPC. A raw .select() here would silently
+// return no rows for every token, which is exactly the bug this fixes.
 export default async function SecureOrderTrackingPage({ params }: { params: { token: string } }) {
   let order: any = null;
   try {
-    const { data } = await supabase
-      .from("orders")
-      .select("id, order_number, status, payment_status, fulfillment_type, scheduled_for, total, created_at")
-      .eq("tracking_token", params.token)
-      .maybeSingle();
-    order = data;
+    const { data } = await supabase.rpc("track_order_by_token", { p_token: params.token });
+    order = data && data.length > 0 ? data[0] : null;
   } catch {
     order = null;
-  }
-
-  let items: any[] = [];
-  if (order) {
-    const { data: itemRows } = await supabase
-      .from("order_items")
-      .select("product_name, quantity")
-      .eq("order_id", order.id);
-    items = itemRows ?? [];
   }
 
   if (!order) {
@@ -43,11 +33,16 @@ export default async function SecureOrderTrackingPage({ params }: { params: { to
       <div className="container-lsc py-16 max-w-lg text-center">
         <PackageSearch size={28} strokeWidth={1.5} className="mx-auto mb-4 text-brown/30" />
         <p className="font-display text-xl text-brown mb-2">Order not found</p>
-        <p className="text-brown/60 text-sm">This tracking link may have expired or is incorrect.</p>
+        <p className="text-brown/60 text-sm mb-6">This tracking link may have expired or is incorrect.</p>
+        <Link href="/track" className="btn-primary inline-flex">
+          <Search size={16} strokeWidth={2} />
+          Track Your Order
+        </Link>
       </div>
     );
   }
 
+  const items: { product_name: string; quantity: number }[] = order.items ?? [];
   const isCancelled = order.status === "cancelled";
   const currentIndex = STATUS_STEPS.indexOf(order.status);
 
@@ -86,13 +81,17 @@ export default async function SecureOrderTrackingPage({ params }: { params: { to
 
       <div className="border border-brown/15 rounded-sm p-5 mb-6">
         <p className="text-xs font-semibold text-brown/50 uppercase tracking-wide mb-3">Items</p>
-        <ul className="space-y-1.5 mb-4">
-          {items.map((it, i) => (
-            <li key={i} className="flex justify-between text-sm text-brown">
-              <span>{it.quantity} × {it.product_name}</span>
-            </li>
-          ))}
-        </ul>
+        {items.length === 0 ? (
+          <p className="text-sm text-brown/40 mb-4">No item details available.</p>
+        ) : (
+          <ul className="space-y-1.5 mb-4">
+            {items.map((it, i) => (
+              <li key={i} className="flex justify-between text-sm text-brown">
+                <span>{it.quantity} × {it.product_name}</span>
+              </li>
+            ))}
+          </ul>
+        )}
         <div className="flex justify-between font-semibold text-brown pt-3 border-t border-brown/10">
           <span>Total</span>
           <span>KSh {Number(order.total).toLocaleString()}</span>

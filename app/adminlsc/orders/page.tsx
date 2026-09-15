@@ -1,15 +1,25 @@
 "use client";
 
 import { useEffect, useState, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
-import { Printer, Search, MapPin, MessageCircle, X as XIcon, CalendarClock } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Search } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { SubTabs } from "@/components/SubTabs";
 import { CakeRequestsPanel } from "@/components/admin/CakeRequestsPanel";
-import { waLink } from "@/lib/whatsapp";
-import { QrCode } from "@/components/QrCode";
 import { StatusLegend } from "@/components/StatusLegend";
-import { ORDER_STATUSES as STATUSES, PAYMENT_STATUSES, STATUS_COLORS, PAYMENT_COLORS, statusLabel } from "@/lib/orderStatus";
+import { ORDER_STATUSES as STATUSES, PAYMENT_STATUSES, STATUS_COLORS, PAYMENT_COLORS } from "@/lib/orderStatus";
+
+// Light full-row tint so the whole order row reads as "received" /
+// "preparing" / etc. at a glance, not just the small status pill.
+const ROW_TINT: Record<string, string> = {
+  received: "bg-blue-50/70 hover:bg-blue-50",
+  confirmed: "bg-teal/5 hover:bg-teal/10",
+  preparing: "bg-amber-50/70 hover:bg-amber-50",
+  ready: "bg-purple-50/70 hover:bg-purple-50",
+  out_for_delivery: "bg-cyan-50/70 hover:bg-cyan-50",
+  completed: "bg-green-50/50 hover:bg-green-50",
+  cancelled: "bg-red-50/50 hover:bg-red-50"
+};
 
 type Order = {
   id: string;
@@ -17,45 +27,17 @@ type Order = {
   customer_name: string;
   customer_phone: string;
   fulfillment_type: string;
-  delivery_address: string | null;
-  delivery_lat: number | null;
-  delivery_lng: number | null;
-  scheduled_for: string | null;
   status: string;
   payment_status: string;
   total: number;
-  special_instructions: string | null;
   created_at: string;
+  assigned_staff_id?: string | null;
 };
-
-type HistoryRow = { status: string; changed_at: string; changed_by: string | null };
 
 function formatDateTime(iso: string) {
   const d = new Date(iso);
   return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) +
     " · " + d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
-}
-
-function StatusIcon({ status, className }: { status: string; className?: string }) {
-  const common = { viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 1.7, className };
-  switch (status) {
-    case "received":
-      return <svg {...common}><path d="M6 4h12v16l-3-2-3 2-3-2-3 2z" /><line x1="9" y1="9" x2="15" y2="9" /><line x1="9" y1="13" x2="15" y2="13" /></svg>;
-    case "confirmed":
-      return <svg {...common}><circle cx="12" cy="12" r="9" /><path d="M8 12l3 3 5-6" /></svg>;
-    case "preparing":
-      return <svg {...common}><circle cx="12" cy="13" r="7" /><path d="M9 6.5c0-1 .8-1.2.8-2S9 3 9 3M15 6.5c0-1-.8-1.2-.8-2S15 3 15 3" /></svg>;
-    case "ready":
-      return <svg {...common}><path d="M4 8.5 12 4l8 4.5v7L12 20l-8-4.5z" /><path d="M4 8.5 12 13l8-4.5" /><line x1="12" y1="13" x2="12" y2="20" /></svg>;
-    case "out_for_delivery":
-      return <svg {...common}><rect x="2.5" y="9" width="12" height="8" rx="1" /><path d="M14.5 12h3.5l3 3v2h-6.5z" /><circle cx="6.5" cy="18.5" r="1.6" /><circle cx="16.5" cy="18.5" r="1.6" /></svg>;
-    case "completed":
-      return <svg {...common}><circle cx="12" cy="12" r="9" fill="currentColor" stroke="none" opacity="0.15" /><path d="M7 12.5l3.2 3.2L17 9" /></svg>;
-    case "cancelled":
-      return <svg {...common}><circle cx="12" cy="12" r="9" /><line x1="9" y1="9" x2="15" y2="15" /><line x1="15" y1="9" x2="9" y2="15" /></svg>;
-    default:
-      return <svg {...common}><circle cx="12" cy="12" r="3" /></svg>;
-  }
 }
 
 export default function AdminOrdersPage() {
@@ -67,108 +49,63 @@ export default function AdminOrdersPage() {
 }
 
 function AdminOrdersPageInner() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const initialTab = searchParams.get("tab") === "cakes" ? 1 : 0;
+  const assignedToMe = searchParams.get("assigned") === "me";
+
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<string>("all");
+  // Defaults to "received" ("New Orders") rather than "All" — that's the
+  // view staff actually need first thing, not a full unfiltered history.
+  const [filter, setFilter] = useState<string>("received");
   const [search, setSearch] = useState("");
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [history, setHistory] = useState<Record<string, HistoryRow[]>>({});
-  const [staffNames, setStaffNames] = useState<Record<string, string>>({});
-  const [trackingTokens, setTrackingTokens] = useState<Record<string, string>>({});
-  const [staffList, setStaffList] = useState<{ id: string; full_name: string }[]>([]);
-  const [assignments, setAssignments] = useState<Record<string, string | null>>({});
-  const [assigning, setAssigning] = useState(false);
+  const [myStaffId, setMyStaffId] = useState<string | null>(null);
 
   async function load() {
     setLoading(true);
-    const [{ data }, { data: staffRows }] = await Promise.all([
-      supabase
-        .from("orders")
-        .select("id, order_number, customer_name, customer_phone, fulfillment_type, delivery_address, delivery_lat, delivery_lng, scheduled_for, status, payment_status, total, special_instructions, created_at")
-        .order("created_at", { ascending: false })
-        .limit(100),
-      supabase.from("staff").select("id, auth_user_id, full_name")
-    ]);
-    setOrders((data as Order[]) ?? []);
-    setStaffNames(Object.fromEntries((staffRows ?? []).map((s: any) => [s.auth_user_id, s.full_name])));
-    setStaffList((staffRows ?? []).map((s: any) => ({ id: s.id, full_name: s.full_name })).filter((s: any) => s.id));
+    let myId: string | null = null;
+    if (assignedToMe) {
+      const { data: auth } = await supabase.auth.getUser();
+      if (auth.user) {
+        const { data: me } = await supabase.from("staff").select("id").eq("auth_user_id", auth.user.id).maybeSingle();
+        myId = me?.id ?? null;
+        setMyStaffId(myId);
+      }
+    }
+
+    // select("*") so this keeps working whether or not assigned_staff_id
+    // exists yet (migrations/002) — filtering by it below is skipped
+    // entirely if it's not present rather than erroring the whole list.
+    const { data } = await supabase
+      .from("orders")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(150);
+
+    let rows = (data as any[]) ?? [];
+    if (assignedToMe && myId) {
+      rows = rows.filter((o) => o.assigned_staff_id === myId);
+    }
+    setOrders(rows as Order[]);
     setLoading(false);
   }
 
   useEffect(() => {
     load();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [assignedToMe]);
 
-  async function loadHistory(orderId: string) {
-    const { data } = await supabase
-      .from("order_status_history")
-      .select("status, changed_at, changed_by")
-      .eq("order_id", orderId)
-      .order("changed_at", { ascending: true });
-    setHistory((prev) => ({ ...prev, [orderId]: (data as HistoryRow[]) ?? [] }));
-  }
-
-  async function updateStatus(id: string, status: string) {
+  async function updateStatus(id: string, status: string, e: React.MouseEvent) {
+    e.stopPropagation();
     await supabase.from("orders").update({ status }).eq("id", id);
     load();
-    if (selectedId === id) loadHistory(id);
   }
 
-  async function updatePayment(id: string, payment_status: string) {
+  async function updatePayment(id: string, payment_status: string, e: React.MouseEvent) {
+    e.stopPropagation();
     await supabase.from("orders").update({ payment_status }).eq("id", id);
     load();
-  }
-
-  function openOrder(o: Order) {
-    setSelectedId(o.id);
-    loadHistory(o.id);
-    // Best-effort: tracking_token and assigned_staff_id only exist once
-    // migrations/002 has been run. select("*") on this single row so a
-    // missing column never errors the query.
-    supabase
-      .from("orders")
-      .select("*")
-      .eq("id", o.id)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (data?.tracking_token) {
-          setTrackingTokens((prev) => ({ ...prev, [o.id]: data.tracking_token }));
-        }
-        setAssignments((prev) => ({ ...prev, [o.id]: data?.assigned_staff_id ?? null }));
-      });
-  }
-
-  async function assignOrder(orderId: string, staffId: string | null) {
-    setAssigning(true);
-    const previous = assignments[orderId] ?? null;
-    const { data: auth } = await supabase.auth.getUser();
-    const { data: me } = await supabase
-      .from("staff")
-      .select("id")
-      .eq("auth_user_id", auth?.user?.id)
-      .maybeSingle();
-
-    const { error } = await supabase
-      .from("orders")
-      .update({
-        assigned_staff_id: staffId,
-        assigned_by: me?.id ?? null,
-        assigned_at: staffId ? new Date().toISOString() : null
-      })
-      .eq("id", orderId);
-
-    if (!error) {
-      setAssignments((prev) => ({ ...prev, [orderId]: staffId }));
-      await supabase.from("order_assignment_history").insert({
-        order_id: orderId,
-        staff_id: staffId,
-        assigned_by: me?.id ?? null,
-        action: staffId ? (previous ? "reassigned" : "assigned") : "unassigned"
-      });
-    }
-    setAssigning(false);
   }
 
   const statusFiltered = filter === "all" ? orders : orders.filter((o) => o.status === filter);
@@ -179,11 +116,11 @@ function AdminOrdersPageInner() {
       )
     : statusFiltered;
 
-  const selected = orders.find((o) => o.id === selectedId) ?? null;
-
   return (
     <div>
-      <h1 className="font-display text-display-md text-brown mb-6">Orders</h1>
+      <h1 className="font-display text-display-md text-brown mb-6">
+        {assignedToMe ? "My Orders" : "Orders"}
+      </h1>
 
       <SubTabs
         initialIndex={initialTab}
@@ -196,7 +133,12 @@ function AdminOrdersPageInner() {
                   <div className="flex flex-wrap gap-2">
                     <FilterPill active={filter === "all"} onClick={() => setFilter("all")} label="All" />
                     {STATUSES.map((s) => (
-                      <FilterPill key={s} active={filter === s} onClick={() => setFilter(s)} label={s.replace(/_/g, " ")} />
+                      <FilterPill
+                        key={s}
+                        active={filter === s}
+                        onClick={() => setFilter(s)}
+                        label={s === "received" ? "New Orders" : s.replace(/_/g, " ")}
+                      />
                     ))}
                   </div>
                   <div className="relative sm:ml-auto w-full sm:w-64 flex-shrink-0">
@@ -235,8 +177,8 @@ function AdminOrdersPageInner() {
                         {filtered.map((o) => (
                           <tr
                             key={o.id}
-                            className="border-t border-brown/10 cursor-pointer hover:bg-cream/40 transition-colors"
-                            onClick={() => openOrder(o)}
+                            className={`border-t border-brown/10 cursor-pointer transition-colors ${ROW_TINT[o.status] ?? "hover:bg-cream/40"}`}
+                            onClick={() => router.push(`/adminlsc/orders/${o.id}`)}
                           >
                             <td className="p-3 text-teal font-medium whitespace-nowrap">{o.order_number}</td>
                             <td className="p-3 text-brown">
@@ -246,10 +188,11 @@ function AdminOrdersPageInner() {
                             <td className="p-3 text-brown/70 text-xs whitespace-nowrap">{formatDateTime(o.created_at)}</td>
                             <td className="p-3 text-brown capitalize">{o.fulfillment_type}</td>
                             <td className="p-3 text-brown whitespace-nowrap">KSh {Number(o.total).toLocaleString()}</td>
-                            <td className="p-3" onClick={(e) => e.stopPropagation()}>
+                            <td className="p-3">
                               <select
                                 value={o.status}
-                                onChange={(e) => updateStatus(o.id, e.target.value)}
+                                onChange={(e) => updateStatus(o.id, e.target.value, e as any)}
+                                onClick={(e) => e.stopPropagation()}
                                 className={`rounded-full text-xs px-2.5 py-1 capitalize border font-medium ${STATUS_COLORS[o.status] ?? "bg-brown/5 text-brown border-brown/20"}`}
                               >
                                 {STATUSES.map((s) => (
@@ -257,10 +200,11 @@ function AdminOrdersPageInner() {
                                 ))}
                               </select>
                             </td>
-                            <td className="p-3" onClick={(e) => e.stopPropagation()}>
+                            <td className="p-3">
                               <select
                                 value={o.payment_status}
-                                onChange={(e) => updatePayment(o.id, e.target.value)}
+                                onChange={(e) => updatePayment(o.id, e.target.value, e as any)}
+                                onClick={(e) => e.stopPropagation()}
                                 className={`rounded-full text-xs px-2.5 py-1 capitalize border font-medium ${PAYMENT_COLORS[o.payment_status] ?? "bg-brown/5 text-brown border-brown/20"}`}
                               >
                                 {PAYMENT_STATUSES.map((s) => (
@@ -283,172 +227,6 @@ function AdminOrdersPageInner() {
           }
         ]}
       />
-
-      {selected && (
-        <div
-          className="fixed inset-0 z-50 bg-brown/50 flex items-end sm:items-center justify-center p-0 sm:p-4"
-          onClick={() => setSelectedId(null)}
-        >
-          <div
-            className="bg-white rounded-t-lg sm:rounded-sm w-full sm:max-w-2xl max-h-[90vh] overflow-y-auto shadow-soft-lg"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between p-5 border-b border-brown/10 sticky top-0 bg-white z-10">
-              <div>
-                <p className="text-xs text-brown/50">Order</p>
-                <p className="font-display text-xl text-teal">{selected.order_number}</p>
-              </div>
-              <button onClick={() => setSelectedId(null)} aria-label="Close" className="text-brown/40 hover:text-brown p-1">
-                <XIcon size={20} strokeWidth={2} />
-              </button>
-            </div>
-
-            <div className="p-5">
-              {(() => {
-                const o = selected;
-                const mapsUrl =
-                  o.delivery_lat != null && o.delivery_lng != null
-                    ? `https://www.google.com/maps/search/?api=1&query=${o.delivery_lat},${o.delivery_lng}`
-                    : o.delivery_address
-                    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(o.delivery_address)}`
-                    : null;
-                const lastHandler = history[o.id]?.slice(-1)[0]?.changed_by;
-
-                return (
-                  <div className="grid md:grid-cols-2 gap-6">
-                    <div>
-                      <p className="text-xs font-semibold text-brown/60 mb-3 uppercase tracking-wide">Status History</p>
-                      {!history[o.id] ? (
-                        <p className="text-xs text-brown/40">Loading…</p>
-                      ) : history[o.id].length === 0 ? (
-                        <p className="text-xs text-brown/40">No history recorded.</p>
-                      ) : (
-                        <ol className="space-y-3">
-                          {history[o.id].map((h, i) => (
-                            <li key={i} className="flex items-start gap-3">
-                              <span className="mt-0.5 text-teal flex-shrink-0">
-                                <StatusIcon status={h.status} className="w-4 h-4" />
-                              </span>
-                              <div>
-                                <p className="text-sm text-brown capitalize font-medium">{h.status.replace(/_/g, " ")}</p>
-                                <p className="text-xs text-brown/50">
-                                  {formatDateTime(h.changed_at)}
-                                  {h.changed_by && staffNames[h.changed_by] && ` · By ${staffNames[h.changed_by]}`}
-                                </p>
-                              </div>
-                            </li>
-                          ))}
-                        </ol>
-                      )}
-
-                      <div className="mt-6">
-                        <p className="text-xs font-semibold text-brown/60 mb-2 uppercase tracking-wide">Order Timing</p>
-                        <p className="text-sm text-brown flex items-center gap-1.5 mb-1">
-                          <CalendarClock size={14} strokeWidth={1.75} className="text-caramel flex-shrink-0" />
-                          Placed {formatDateTime(o.created_at)}
-                        </p>
-                        {o.scheduled_for && (
-                          <p className="text-sm text-brown flex items-center gap-1.5 mb-1">
-                            <CalendarClock size={14} strokeWidth={1.75} className="text-caramel flex-shrink-0" />
-                            Requested for {formatDateTime(o.scheduled_for)}
-                          </p>
-                        )}
-                        {lastHandler && staffNames[lastHandler] && (
-                          <p className="text-xs text-brown/50 mt-2">Last handled by {staffNames[lastHandler]}</p>
-                        )}
-                      </div>
-                    </div>
-
-                    <div>
-                      <div className="mb-4">
-                      <p className="text-xs font-semibold text-brown/60 mb-2 uppercase tracking-wide">Assigned Staff</p>
-                      <select
-                        value={assignments[o.id] ?? ""}
-                        disabled={assigning}
-                        onChange={(e) => assignOrder(o.id, e.target.value || null)}
-                        className="w-full border border-brown/20 rounded-sm text-sm px-3 py-2 bg-white disabled:opacity-50"
-                      >
-                        <option value="">Unassigned</option>
-                        {staffList.map((s) => (
-                          <option key={s.id} value={s.id}>{s.full_name}</option>
-                        ))}
-                      </select>
-                      {assignments[o.id] && (
-                        <p className="text-xs text-brown/50 mt-1.5">
-                          Assigned to {staffList.find((s) => s.id === assignments[o.id])?.full_name ?? "staff member"}
-                        </p>
-                      )}
-                    </div>
-
-                    {o.fulfillment_type === "delivery" && (
-                        <div className="mb-4">
-                          <p className="text-xs font-semibold text-brown/60 mb-2 uppercase tracking-wide">Delivery</p>
-                          <p className="text-sm text-brown mb-2">{o.delivery_address || "No address provided"}</p>
-                          {mapsUrl && (
-                            <a
-                              href={mapsUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-teal text-xs font-medium hover:underline inline-flex items-center gap-1"
-                            >
-                              <MapPin size={13} strokeWidth={1.75} />
-                              Open in Google Maps
-                            </a>
-                          )}
-                        </div>
-                      )}
-                      {o.special_instructions && (
-                        <div className="mb-4">
-                          <p className="text-xs font-semibold text-brown/60 mb-2 uppercase tracking-wide">Special Instructions</p>
-                          <p className="text-sm text-brown">{o.special_instructions}</p>
-                        </div>
-                      )}
-
-                      <div className="flex flex-wrap gap-3 mt-4 pt-4 border-t border-brown/10">
-                        <a
-                          href={waLink(o.customer_phone, `Hi ${o.customer_name}, this is La Shefa Cafe. Your order number is ${o.order_number}. Let us know if you need anything!`)}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-teal text-xs font-medium hover:underline inline-flex items-center gap-1"
-                        >
-                          <MessageCircle size={13} strokeWidth={1.75} />
-                          Send order # via WhatsApp
-                        </a>
-                        <a
-                          href={`/adminlsc/orders/receipt/${o.id}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-teal text-xs font-medium hover:underline inline-flex items-center gap-1"
-                        >
-                          <Printer size={13} strokeWidth={1.75} />
-                          Print Receipt
-                        </a>
-                      </div>
-
-                      {trackingTokens[o.id] && (
-                        <div className="flex items-center gap-3 mt-4 pt-4 border-t border-brown/10">
-                          <QrCode value={`${typeof window !== "undefined" ? window.location.origin : ""}/track/${trackingTokens[o.id]}`} size={72} />
-                          <div>
-                            <p className="text-xs text-brown/60 mb-1">Customer tracking link</p>
-                            <a
-                              href={`/track/${trackingTokens[o.id]}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-teal text-xs font-medium hover:underline"
-                            >
-                              Open tracking page
-                            </a>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })()}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
