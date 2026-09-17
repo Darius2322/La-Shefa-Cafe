@@ -16,7 +16,7 @@ import {
 import { supabase } from "@/lib/supabase";
 import { getFeatureFlags } from "@/lib/settings";
 import { Reveal } from "@/components/Reveal";
-import { MenuMarquee } from "@/components/MenuMarquee";
+import { MenuCarousel } from "@/components/MenuCarousel";
 import type { Product } from "@/lib/types";
 
 const WHY_ITEMS = [
@@ -37,18 +37,18 @@ const CAKE_TYPES = [
 
 export const revalidate = 60;
 
-async function getMenuHighlights() {
-  // A broader pull than "featured" alone (which can be just a handful of
-  // items) so the carousel has enough variety to loop nicely — still real
-  // menu data, never invented.
+async function getAllMenuItems() {
+  // "Display all the menu" — every available, non-hidden item, not just a
+  // featured/highlight subset. No image required: items without a photo
+  // still show, with a neutral placeholder, rather than being silently
+  // dropped from "all".
   const { data } = await supabase
     .from("products")
     .select("*")
     .eq("is_hidden", false)
     .eq("is_available", true)
-    .not("image_url", "is", null)
     .order("is_featured", { ascending: false })
-    .limit(14);
+    .order("name");
   return (data as Product[]) ?? [];
 }
 
@@ -86,8 +86,8 @@ async function getApprovedReviews() {
 }
 
 export default async function HomePage() {
-  const [highlights, featured, offers, reviews, flags] = await Promise.all([
-    getMenuHighlights(),
+  const [allMenuItems, featured, offers, reviews, flags] = await Promise.all([
+    getAllMenuItems(),
     getFeaturedProducts(),
     getActiveOffers(),
     getApprovedReviews(),
@@ -178,14 +178,22 @@ export default async function HomePage() {
           Replaces an earlier category-icon version per feedback: this is
           more appetizing and shows actual dishes rather than abstract
           category labels. */}
-      {highlights.length > 0 && (
-        <section className="py-10 sm:py-14 border-b border-brown/10 overflow-hidden">
-          <Reveal className="container-lsc">
-            <h2 className="font-display text-display-sm sm:text-display-md text-brown mb-6 sm:mb-8">
+      {/* Full-menu slideshow carousel: auto-advances every 1.5s, item count
+          per view responds to screen size, with manual prev/next and a
+          View Full Menu CTA. Replaces the earlier continuous-scroll
+          marquee version per feedback. */}
+      {allMenuItems.length > 0 && (
+        <section className="py-10 sm:py-14 border-b border-brown/10">
+          <Reveal className="container-lsc flex items-baseline justify-between mb-6 sm:mb-8">
+            <h2 className="font-display text-display-sm sm:text-display-md text-brown">
               From Our Menu
             </h2>
+            <Link href="/menu" className="text-teal text-sm font-medium hover:underline flex items-center gap-1">
+              View full menu
+              <ArrowRight size={14} strokeWidth={2} />
+            </Link>
           </Reveal>
-          <MenuMarquee items={highlights.map((p) => ({ id: p.id, name: p.name, price: Number(p.price), image_url: p.image_url }))} />
+          <MenuCarousel items={allMenuItems.map((p) => ({ id: p.id, name: p.name, price: Number(p.price), image_url: p.image_url }))} />
         </section>
       )}
 
