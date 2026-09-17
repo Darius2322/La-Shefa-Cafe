@@ -107,6 +107,16 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       );
 
       const admin = staffRow.role === "admin";
+
+      // Strict portal separation: /adminlsc is admin-only. A non-admin
+      // staff member (cashier, etc.) who signs in here — whether via a
+      // shared bookmark or by mistake — is sent to their own portal
+      // instead of landing in the admin dashboard.
+      if (!admin) {
+        if (active) router.replace("/shefastaff");
+        return;
+      }
+
       let permSet = new Set<string>();
       if (!admin) {
         const { data: permRows } = await supabase

@@ -57,6 +57,15 @@ export function StaffShell({ children }: { children: React.ReactNode }) {
       );
 
       const admin = staffRow.role === "admin";
+
+      // Reciprocal of the AdminShell rule: /shefastaff is for non-admin
+      // staff. An admin who lands here (shared bookmark, muscle memory)
+      // goes to the admin portal instead.
+      if (admin) {
+        if (active) router.replace("/adminlsc");
+        return;
+      }
+
       let permSet = new Set<string>();
       if (!admin) {
         const { data: permRows } = await supabase

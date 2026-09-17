@@ -85,6 +85,8 @@ export function Footer({
               <li><Link href="/booking" className="hover:text-caramel">Booking</Link></li>
             )}
             <li><Link href="/track" className="hover:text-caramel">Track Order</Link></li>
+            <li><Link href="/offers" className="hover:text-caramel">Offers</Link></li>
+            <li><Link href="/reviews" className="hover:text-caramel">Reviews</Link></li>
             <li><Link href="/faq" className="hover:text-caramel">FAQ</Link></li>
             <li><Link href="/contact" className="hover:text-caramel">Contact</Link></li>
           </ul>

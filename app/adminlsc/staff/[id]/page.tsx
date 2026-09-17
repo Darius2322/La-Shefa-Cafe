@@ -3,8 +3,11 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Mail, Phone, Shield, Clock3, Receipt as ReceiptIcon, TrendingUp } from "lucide-react";
+import { ArrowLeft, Mail, Phone, Shield, Clock3, Receipt as ReceiptIcon, TrendingUp, KeyRound, MessageCircle } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { waLink } from "@/lib/whatsapp";
+
+const ROLES = ["admin", "manager", "cashier", "staff"] as const;
 
 type StaffMember = {
   id: string;
@@ -68,6 +71,7 @@ export default function StaffProfilePage() {
   const [permissions, setPermissions] = useState<Permission[]>([]);
   const [myPermIds, setMyPermIds] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
+  const [actionNotice, setActionNotice] = useState<string | null>(null);
 
   const [range, setRange] = useState<Range>("month");
   const [customFrom, setCustomFrom] = useState("");
@@ -169,6 +173,38 @@ export default function StaffProfilePage() {
     if (staffMember) loadActivity();
   }, [id, staffMember]);
 
+  async function authHeader() {
+    const { data } = await supabase.auth.getSession();
+    return { Authorization: `Bearer ${data.session?.access_token}` };
+  }
+
+  async function updateRole(role: string) {
+    await supabase.from("staff").update({ role }).eq("id", id);
+    setStaffMember((prev) => (prev ? { ...prev, role } : prev));
+  }
+
+  async function toggleActive() {
+    if (!staffMember) return;
+    await supabase.from("staff").update({ is_active: !staffMember.is_active }).eq("id", id);
+    setStaffMember((prev) => (prev ? { ...prev, is_active: !prev.is_active } : prev));
+  }
+
+  async function resetPassword() {
+    if (!staffMember || !confirm(`Reset ${staffMember.full_name}'s password to the default?`)) return;
+    const res = await fetch("/api/admin/staff/reset-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...(await authHeader()) },
+      body: JSON.stringify({ staff_auth_user_id: staffMember.auth_user_id })
+    });
+    const json = await res.json();
+    if (!res.ok) {
+      setActionNotice(json.error || "Couldn't reset password.");
+      return;
+    }
+    setActionNotice(`Password reset to default: ${json.defaultPassword}`);
+    setTimeout(() => setActionNotice(null), 6000);
+  }
+
   async function togglePermission(permId: number) {
     const has = myPermIds.includes(permId);
     if (has) {
@@ -200,7 +236,42 @@ export default function StaffProfilePage() {
           {staffMember.is_active ? "Active" : "Deactivated"}
         </span>
       </div>
-      <p className="text-sm text-brown/60 capitalize mb-6">{staffMember.role} · La Shefa Cafe</p>
+      <p className="text-sm text-brown/60 capitalize mb-4">{staffMember.role} · La Shefa Cafe</p>
+
+      <div className="flex flex-wrap items-center gap-3 mb-6">
+        <select
+          value={staffMember.role}
+          onChange={(e) => updateRole(e.target.value)}
+          className="border border-brown/20 rounded-sm text-xs px-3 py-1.5 bg-white capitalize"
+        >
+          {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
+        </select>
+        <button onClick={resetPassword} className="btn-outline !text-brown !border-brown/30 !py-1.5 !px-3 text-xs">
+          <KeyRound size={13} strokeWidth={1.75} />
+          Reset Password
+        </button>
+        {staffMember.phone && (
+          <a
+            href={waLink(
+              staffMember.phone,
+              `Hi ${staffMember.full_name}, here's your La Shefa Cafe staff login link: ${typeof window !== "undefined" ? window.location.origin : ""}/shefastaff/login\n\nUse your work email and the default password (ask an admin if you haven't changed it yet).`
+            )}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn-outline !text-brown !border-brown/30 !py-1.5 !px-3 text-xs"
+          >
+            <MessageCircle size={13} strokeWidth={1.75} />
+            Send Login Link
+          </a>
+        )}
+        <button
+          onClick={toggleActive}
+          className={`!py-1.5 !px-3 text-xs rounded-sm font-medium ${staffMember.is_active ? "bg-red-50 text-red-700" : "bg-teal/10 text-teal"}`}
+        >
+          {staffMember.is_active ? "Deactivate" : "Reactivate"}
+        </button>
+        {actionNotice && <span className="text-xs text-teal">{actionNotice}</span>}
+      </div>
 
       <div className="flex flex-wrap gap-1 border-b border-brown/15 mb-6">
         {(["overview", "sales", "activity", "permissions"] as const).map((t) => (

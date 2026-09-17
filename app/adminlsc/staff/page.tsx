@@ -1,10 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
-import { Search, MessageCircle } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Search } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import { waLink } from "@/lib/whatsapp";
 
 type Permission = { id: number; code: string; description: string | null };
 type StaffMember = {
@@ -22,9 +21,9 @@ const ROLES = ["admin", "manager", "cashier", "staff"] as const;
 const EMPTY_FORM = { full_name: "", email: "", phone: "", role: "cashier" as StaffMember["role"] };
 
 export default function AdminStaffPage() {
+  const router = useRouter();
   const [staff, setStaff] = useState<StaffMember[]>([]);
   const [permissions, setPermissions] = useState<Permission[]>([]);
-  const [staffPerms, setStaffPerms] = useState<Record<string, number[]>>({});
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
@@ -32,7 +31,6 @@ export default function AdminStaffPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const [editingPermsFor, setEditingPermsFor] = useState<string | null>(null);
   const [search, setSearch] = useState("");
 
   async function load() {
@@ -44,11 +42,6 @@ export default function AdminStaffPage() {
     ]);
     setStaff((staffRows as StaffMember[]) ?? []);
     setPermissions((permRows as Permission[]) ?? []);
-    const map: Record<string, number[]> = {};
-    (spRows ?? []).forEach((r: any) => {
-      map[r.staff_id] = [...(map[r.staff_id] ?? []), r.permission_id];
-    });
-    setStaffPerms(map);
     setLoading(false);
   }
 
@@ -84,42 +77,6 @@ export default function AdminStaffPage() {
     setSelectedPerms([]);
     setShowForm(false);
     setSaving(false);
-    load();
-  }
-
-  async function toggleActive(s: StaffMember) {
-    await supabase.from("staff").update({ is_active: !s.is_active }).eq("id", s.id);
-    load();
-  }
-
-  async function updateRole(s: StaffMember, role: StaffMember["role"]) {
-    await supabase.from("staff").update({ role }).eq("id", s.id);
-    load();
-  }
-
-  async function resetPassword(s: StaffMember) {
-    if (!confirm(`Reset ${s.full_name}'s password to the default?`)) return;
-    const res = await fetch("/api/admin/staff/reset-password", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...(await authHeader()) },
-      body: JSON.stringify({ staff_auth_user_id: s.auth_user_id })
-    });
-    const json = await res.json();
-    if (!res.ok) {
-      alert(json.error || "Couldn't reset password.");
-      return;
-    }
-    alert(`Password reset to default: ${json.defaultPassword}`);
-  }
-
-  async function togglePermission(staffId: string, permId: number) {
-    const current = staffPerms[staffId] ?? [];
-    const has = current.includes(permId);
-    if (has) {
-      await supabase.from("staff_permissions").delete().eq("staff_id", staffId).eq("permission_id", permId);
-    } else {
-      await supabase.from("staff_permissions").insert({ staff_id: staffId, permission_id: permId });
-    }
     load();
   }
 
@@ -226,7 +183,7 @@ export default function AdminStaffPage() {
               className="border border-brown/20 rounded-sm pl-9 pr-3 py-2 text-sm bg-white w-full focus:border-teal transition-colors"
             />
           </div>
-          <div className="space-y-3">
+          <div className="space-y-2">
           {staff
             .filter((s) => {
               const q = search.trim().toLowerCase();
@@ -234,71 +191,21 @@ export default function AdminStaffPage() {
               return [s.full_name, s.email, s.role, s.phone ?? ""].some((f) => f.toLowerCase().includes(q));
             })
             .map((s) => (
-            <div key={s.id} className="bg-white border border-brown/10 rounded-sm p-4">
-              <div className="flex items-center justify-between gap-4 flex-wrap">
-                <div>
-                  <p className="font-medium text-brown">
-                    <Link href={`/adminlsc/staff/${s.id}`} className="hover:text-teal hover:underline">
-                      {s.full_name}
-                    </Link>{" "}
-                    {!s.is_active && <span className="text-xs text-red-700 ml-1">(deactivated)</span>}
-                  </p>
-                  <p className="text-xs text-brown/50">{s.email} {s.phone && `· ${s.phone}`}</p>
-                </div>
-                <div className="flex items-center gap-3 text-sm">
-                  <select
-                    value={s.role}
-                    onChange={(e) => updateRole(s, e.target.value as StaffMember["role"])}
-                    className="border border-brown/20 rounded-sm text-xs px-2 py-1 bg-white capitalize"
-                  >
-                    {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
-                  </select>
-                  <Link href={`/adminlsc/staff/${s.id}`} className="text-teal hover:underline">
-                    View Profile
-                  </Link>
-                  <button onClick={() => setEditingPermsFor(editingPermsFor === s.id ? null : s.id)} className="text-teal hover:underline">
-                    Permissions
-                  </button>
-                  <button onClick={() => resetPassword(s)} className="text-teal hover:underline">Reset Password</button>
-                  {s.phone && (
-                    <a
-                      href={waLink(
-                        s.phone,
-                        `Hi ${s.full_name}, here's your La Shefa Cafe staff login link: ${typeof window !== "undefined" ? window.location.origin : ""}/shefastaff/login\n\nUse your work email and the default password (ask an admin if you haven't changed it yet).`
-                      )}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-teal hover:underline inline-flex items-center gap-1"
-                    >
-                      <MessageCircle size={13} strokeWidth={1.75} />
-                      Send Login Link
-                    </a>
-                  )}
-                  <button onClick={() => toggleActive(s)} className={s.is_active ? "text-red-700 hover:underline" : "text-teal hover:underline"}>
-                    {s.is_active ? "Deactivate" : "Reactivate"}
-                  </button>
-                </div>
-              </div>
-
-              {editingPermsFor === s.id && s.role !== "admin" && (
-                <div className="grid sm:grid-cols-2 gap-2 mt-4 pt-4 border-t border-brown/10">
-                  {permissions.map((p) => (
-                    <label key={p.id} className="flex items-center gap-2 text-sm text-brown">
-                      <input
-                        type="checkbox"
-                        checked={(staffPerms[s.id] ?? []).includes(p.id)}
-                        onChange={() => togglePermission(s.id, p.id)}
-                      />
-                      {p.code}
-                    </label>
-                  ))}
-                </div>
-              )}
-              {editingPermsFor === s.id && s.role === "admin" && (
-                <p className="text-xs text-brown/50 mt-4 pt-4 border-t border-brown/10">
-                  Admins have full access to everything automatically.
+            <div
+              key={s.id}
+              onClick={() => router.push(`/adminlsc/staff/${s.id}`)}
+              className="bg-white border border-brown/10 rounded-sm p-4 flex items-center justify-between gap-4 cursor-pointer hover:border-teal transition-colors card-hover"
+            >
+              <div className="min-w-0">
+                <p className="font-medium text-brown truncate">
+                  {s.full_name}{" "}
+                  {!s.is_active && <span className="text-xs text-red-700 ml-1">(deactivated)</span>}
                 </p>
-              )}
+                <p className="text-xs text-brown/50 truncate">{s.email} {s.phone && `· ${s.phone}`}</p>
+              </div>
+              <span className="flex-shrink-0 text-xs px-2.5 py-1 rounded-full bg-teal/10 text-teal capitalize font-medium">
+                {s.role}
+              </span>
             </div>
           ))}
           </div>

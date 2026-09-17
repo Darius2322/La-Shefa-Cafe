@@ -1,6 +1,7 @@
 import { Phone, MessageCircle, Mail, MapPin, Clock } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { OrderCta } from "@/components/OrderCta";
+import { ComplaintForm } from "@/components/ComplaintForm";
 import { getShopLocation, mapsUrlFromLocation } from "@/lib/settings";
 
 export const revalidate = 60;
@@ -85,6 +86,11 @@ export default async function ContactPage() {
           )}
         </div>
       )}
+
+      <div className="mt-10 pt-10 border-t border-brown/10">
+        <ComplaintForm />
+      </div>
+
       <OrderCta />
       </div>
     </div>

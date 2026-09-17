@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { Receipt, type ReceiptData, type ReceiptWidth } from "@/components/Receipt";
+import { getFormattedPaymentMethods } from "@/lib/paymentMethods";
 
 export default function OrderReceiptPage() {
   const params = useParams();
@@ -31,6 +32,11 @@ export default function OrderReceiptPage() {
 
       const handlerId = order.assigned_staff_id ?? null;
       const handlerName = handlerId ? (staffRows ?? []).find((s: any) => s.id === handlerId)?.full_name ?? null : null;
+
+      const paymentInstructions =
+        order.payment_status === "unpaid" || order.payment_status === "partial"
+          ? await getFormattedPaymentMethods()
+          : [];
 
       setData({
         title: "La Shefa Cafe",
@@ -62,7 +68,8 @@ export default function OrderReceiptPage() {
           : null,
         generatedAt: new Date().toLocaleString("en-GB", {
           day: "2-digit", month: "short", year: "numeric", hour: "numeric", minute: "2-digit"
-        })
+        }),
+        paymentInstructions
       });
     }
     load();

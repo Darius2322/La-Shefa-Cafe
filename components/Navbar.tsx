@@ -27,11 +27,18 @@ const BASE_LINKS = [
   { href: "/menu", label: "Menu", icon: UtensilsCrossed },
   { href: "/cakes", label: "Cakes", icon: CakeSlice },
   { href: "/booking", label: "Booking", icon: CalendarCheck, requiresFlag: "booking" as const },
-  { href: "/offers", label: "Offers", icon: Tag },
-  { href: "/reviews", label: "Reviews", icon: Star },
-  { href: "/faq", label: "FAQ", icon: HelpCircle },
   { href: "/about", label: "About", icon: Info },
   { href: "/contact", label: "Contact", icon: Phone }
+];
+
+// Still real pages, still linked from the Footer and from within the site
+// (e.g. checkout confirmation links to reviews/offers) — just not
+// competing for space in the top bar, which was wrapping to two lines on
+// desktop with every link in it.
+const MOBILE_ONLY_LINKS = [
+  { href: "/offers", label: "Offers", icon: Tag },
+  { href: "/reviews", label: "Reviews", icon: Star },
+  { href: "/faq", label: "FAQ", icon: HelpCircle }
 ];
 
 export function Navbar({ bookingEnabled = true }: { bookingEnabled?: boolean }) {
@@ -88,18 +95,6 @@ export function Navbar({ bookingEnabled = true }: { bookingEnabled?: boolean }) 
                 {l.label}
               </Link>
             ))}
-            <button
-              onClick={handleShare}
-              className="flex items-center gap-1.5 hover:text-teal transition-colors"
-              aria-label="Share La Shefa Cafe"
-            >
-              {shared ? (
-                <Check size={14} strokeWidth={2} className="text-teal" />
-              ) : (
-                <Share2 size={14} strokeWidth={1.75} className="text-brown/40" />
-              )}
-              {shared ? "Link copied" : "Share"}
-            </button>
           </nav>
 
           <div className="flex items-center gap-3">
@@ -156,6 +151,17 @@ export function Navbar({ bookingEnabled = true }: { bookingEnabled?: boolean }) 
 
           <nav className="flex-1 overflow-y-auto px-5 py-6 flex flex-col gap-1">
             {LINKS.map((l) => (
+              <Link
+                key={l.href}
+                href={l.href}
+                onClick={() => setOpen(false)}
+                className="flex items-center gap-3 text-cream font-display text-xl py-3 border-b border-cream/10"
+              >
+                <l.icon size={17} strokeWidth={1.75} className="text-caramel flex-shrink-0" />
+                {l.label}
+              </Link>
+            ))}
+            {MOBILE_ONLY_LINKS.map((l) => (
               <Link
                 key={l.href}
                 href={l.href}

@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState, Fragment } from "react";
-import { Plus, ImagePlus, Pencil, Trash2, Eye, EyeOff, ChevronDown, ChevronUp } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Plus, ImagePlus, Eye, EyeOff, Star } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 type Category = { id: string; name: string };
@@ -20,7 +21,6 @@ type Product = {
 };
 
 const EMPTY_FORM = {
-  id: "",
   category_id: "",
   name: "",
   description: "",
@@ -32,6 +32,7 @@ const EMPTY_FORM = {
 };
 
 export default function AdminProductsPage() {
+  const router = useRouter();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,20 +41,15 @@ export default function AdminProductsPage() {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [staffNames, setStaffNames] = useState<Record<string, string>>({});
   const [currentStaffId, setCurrentStaffId] = useState<string | null>(null);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [soldCounts, setSoldCounts] = useState<Record<string, number>>({});
+  const [uploadPreview, setUploadPreview] = useState<{ name: string; size: string } | null>(null);
 
   async function loadAll() {
     setLoading(true);
-    const [{ data: prods }, { data: cats }, { data: staffRows }, { data: itemRows }] = await Promise.all([
-      supabase.from("products").select("*").order("created_at", { ascending: false }),
+    const [{ data: prods }, { data: cats }, { data: itemRows }] = await Promise.all([
+      supabase.from("products").select("*").order("name"),
       supabase.from("categories").select("id, name").eq("kind", "menu").order("sort_order"),
-      supabase.from("staff").select("id, full_name"),
-      // One batched query for all order line items, aggregated client-side by
-      // product, so every row can show its order count without a click —
-      // far cheaper than a per-product query.
       supabase.from("order_items").select("product_id, quantity")
     ]);
     setProducts((prods as Product[]) ?? []);
@@ -63,29 +59,16 @@ export default function AdminProductsPage() {
       counts[r.product_id] = (counts[r.product_id] ?? 0) + Number(r.quantity ?? 0);
     });
     setSoldCounts(counts);
-    setStaffNames(Object.fromEntries((staffRows ?? []).map((s: any) => [s.id, s.full_name])));
     setLoading(false);
-
-    const { data: sessionData } = await supabase.auth.getSession();
-    if (sessionData.session) {
-      const { data: me } = await supabase
-        .from("staff")
-        .select("id")
-        .eq("auth_user_id", sessionData.session.user.id)
-        .maybeSingle();
-      setCurrentStaffId(me?.id ?? null);
-    }
-  }
-
-  async function loadSoldCount(productId: string) {
-    if (soldCounts[productId] !== undefined) return;
-    const { data } = await supabase.from("order_items").select("quantity").eq("product_id", productId);
-    const total = (data ?? []).reduce((s: number, r: any) => s + r.quantity, 0);
-    setSoldCounts((prev) => ({ ...prev, [productId]: total }));
   }
 
   useEffect(() => {
     loadAll();
+    supabase.auth.getUser().then(async ({ data }) => {
+      if (!data.user) return;
+      const { data: me } = await supabase.from("staff").select("id").eq("auth_user_id", data.user.id).maybeSingle();
+      if (me) setCurrentStaffId(me.id);
+    });
   }, []);
 
   function startNew() {
@@ -94,27 +77,8 @@ export default function AdminProductsPage() {
     setShowForm(true);
   }
 
-  function startEdit(p: Product) {
-    setForm({
-      id: p.id,
-      category_id: p.category_id ?? "",
-      name: p.name,
-      description: p.description ?? "",
-      price: String(p.price),
-      image_url: p.image_url ?? "",
-      is_available: p.is_available,
-      is_featured: p.is_featured,
-      is_hidden: p.is_hidden
-    });
-    setUploadPreview(null);
-    setShowForm(true);
-  }
-
-  const [uploadPreview, setUploadPreview] = useState<{ name: string; size: string } | null>(null);
-
   async function handleImageUpload(file: File) {
     setError(null);
-
     const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
     if (!allowedTypes.includes(file.type)) {
       setError("Please choose a JPG, PNG or WebP image.");
@@ -126,7 +90,6 @@ export default function AdminProductsPage() {
       return;
     }
 
-    // Show an instant local preview and file details before the network upload finishes.
     const localPreviewUrl = URL.createObjectURL(file);
     setForm((f) => ({ ...f, image_url: localPreviewUrl }));
     setUploadPreview({ name: file.name, size: `${Math.round(file.size / 1024)} KB` });
@@ -176,12 +139,10 @@ export default function AdminProductsPage() {
       is_hidden: form.is_hidden
     };
 
-    const result = form.id
-      ? await supabase.from("products").update(payload).eq("id", form.id)
-      : await supabase.from("products").insert({ ...payload, created_by: currentStaffId });
+    const { error: err } = await supabase.from("products").insert({ ...payload, created_by: currentStaffId });
 
-    if (result.error) {
-      setError("Couldn't save the product. Please try again.");
+    if (err) {
+      setError(`Couldn't save the product: ${err.message}`);
       setSaving(false);
       return;
     }
@@ -191,21 +152,21 @@ export default function AdminProductsPage() {
     loadAll();
   }
 
-  async function toggleField(p: Product, field: "is_hidden" | "is_available" | "is_featured") {
+  async function toggleField(e: React.MouseEvent, p: Product, field: "is_hidden" | "is_available" | "is_featured") {
+    e.stopPropagation();
     await supabase.from("products").update({ [field]: !p[field] }).eq("id", p.id);
     loadAll();
   }
 
-  async function deleteProduct(id: string) {
-    if (!confirm("Delete this product permanently?")) return;
-    await supabase.from("products").delete().eq("id", id);
-    loadAll();
-  }
+  const grouped = categories
+    .map((c) => ({ category: c, items: products.filter((p) => p.category_id === c.id) }))
+    .filter((g) => g.items.length > 0);
+  const uncategorized = products.filter((p) => !p.category_id || !categories.some((c) => c.id === p.category_id));
 
   return (
     <div>
       <div className="flex items-center justify-between mb-8">
-        <h1 className="font-display text-display-md text-brown">Products</h1>
+        <h1 className="font-display text-display-md text-brown">Menu</h1>
         <button onClick={startNew} className="btn-primary">
           <Plus size={16} strokeWidth={2} />
           Add Product
@@ -214,7 +175,7 @@ export default function AdminProductsPage() {
 
       {showForm && (
         <form onSubmit={handleSave} className="bg-white border border-brown/10 rounded-sm p-6 mb-8 space-y-4 max-w-xl">
-          <h2 className="font-display text-xl text-brown">{form.id ? "Edit Product" : "New Product"}</h2>
+          <h2 className="font-display text-xl text-brown">New Product</h2>
           <div className="grid sm:grid-cols-2 gap-4">
             <label className="block">
               <span className="block text-sm font-medium text-brown mb-1">Name *</span>
@@ -302,80 +263,104 @@ export default function AdminProductsPage() {
       ) : products.length === 0 ? (
         <p className="text-brown/50 text-sm">No products yet. Add your first one above.</p>
       ) : (
-        <div className="bg-white border border-brown/10 rounded-sm overflow-x-auto">
-          <table className="w-full text-sm min-w-[640px]">
-            <thead className="bg-cream text-brown/60 text-left">
-              <tr>
-                <th className="p-3 font-medium">Name</th>
-                <th className="p-3 font-medium">Price</th>
-                <th className="p-3 font-medium">Orders</th>
-                <th className="p-3 font-medium">Status</th>
-                <th className="p-3 font-medium text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {products.map((p) => (
-                <Fragment key={p.id}>
-                  <tr className="border-t border-brown/10">
-                    <td className="p-3 text-brown">{p.name}</td>
-                    <td className="p-3 text-brown">KSh {Number(p.price).toLocaleString()}</td>
-                    <td className="p-3 text-brown/70">{soldCounts[p.id] ?? 0} sold</td>
-                    <td className="p-3 space-x-2">
-                      {p.is_hidden && <Badge label="Hidden" />}
-                      {!p.is_available && <Badge label="Unavailable" />}
-                      {p.is_featured && <Badge label="Featured" tone="caramel" />}
-                      {!p.is_hidden && p.is_available && !p.is_featured && <Badge label="Live" tone="teal" />}
-                    </td>
-                    <td className="p-3 text-right whitespace-nowrap">
-                      <div className="flex items-center justify-end gap-1">
-                        <button
-                          onClick={() => {
-                            const next = expandedId === p.id ? null : p.id;
-                            setExpandedId(next);
-                            if (next) loadSoldCount(p.id);
-                          }}
-                          className="p-1.5 text-brown/50 hover:text-brown"
-                          aria-label={expandedId === p.id ? "Hide details" : "Show details"}
-                        >
-                          {expandedId === p.id ? <ChevronUp size={15} strokeWidth={1.75} /> : <ChevronDown size={15} strokeWidth={1.75} />}
-                        </button>
-                        <button
-                          onClick={() => toggleField(p, "is_hidden")}
-                          className="p-1.5 text-teal hover:text-teal-dark"
-                          aria-label={p.is_hidden ? "Show on menu" : "Hide from menu"}
-                        >
-                          {p.is_hidden ? <Eye size={15} strokeWidth={1.75} /> : <EyeOff size={15} strokeWidth={1.75} />}
-                        </button>
-                        <button onClick={() => startEdit(p)} className="p-1.5 text-teal hover:text-teal-dark" aria-label="Edit product">
-                          <Pencil size={15} strokeWidth={1.75} />
-                        </button>
-                        <button onClick={() => deleteProduct(p.id)} className="p-1.5 text-red-700 hover:text-red-800" aria-label="Delete product">
-                          <Trash2 size={15} strokeWidth={1.75} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                  {expandedId === p.id && (
-                    <tr className="bg-cream/50 border-t border-brown/5">
-                      <td colSpan={5} className="p-4 text-xs text-brown/70">
-                        <div className="grid sm:grid-cols-3 gap-3">
-                          <p>Created: {new Date(p.created_at).toLocaleDateString()} at {new Date(p.created_at).toLocaleTimeString()}</p>
-                          <p>Added by: {p.created_by ? staffNames[p.created_by] ?? "Unknown staff" : "Not recorded"}</p>
-                          <p>Total units sold: {soldCounts[p.id] ?? "…"}</p>
-                        </div>
-                      </td>
-                    </tr>
-                  )}
-                </Fragment>
-              ))}
-            </tbody>
-          </table>
+        <div className="space-y-8">
+          {grouped.map(({ category, items }) => (
+            <div key={category.id}>
+              <h2 className="font-display text-lg text-brown mb-3">{category.name}</h2>
+              <ProductTable items={items} soldCounts={soldCounts} onRowClick={(id) => router.push(`/adminlsc/products/${id}`)} onToggle={toggleField} />
+            </div>
+          ))}
+          {uncategorized.length > 0 && (
+            <div>
+              <h2 className="font-display text-lg text-brown mb-3">Uncategorized</h2>
+              <ProductTable items={uncategorized} soldCounts={soldCounts} onRowClick={(id) => router.push(`/adminlsc/products/${id}`)} onToggle={toggleField} />
+            </div>
+          )}
         </div>
       )}
 
       <style>{`
         .input { width: 100%; border: 1px solid rgba(65,29,13,0.2); border-radius: 4px; padding: 0.6rem 0.8rem; background: white; color: #2C1409; font-size: 0.95rem; }
       `}</style>
+    </div>
+  );
+}
+
+function ProductTable({
+  items,
+  soldCounts,
+  onRowClick,
+  onToggle
+}: {
+  items: Product[];
+  soldCounts: Record<string, number>;
+  onRowClick: (id: string) => void;
+  onToggle: (e: React.MouseEvent, p: Product, field: "is_hidden" | "is_available" | "is_featured") => void;
+}) {
+  return (
+    <div className="bg-white border border-brown/10 rounded-sm overflow-x-auto">
+      <table className="w-full text-sm min-w-[640px]">
+        <thead className="bg-cream text-brown/60 text-left">
+          <tr>
+            <th className="p-3 font-medium">Product</th>
+            <th className="p-3 font-medium">Price</th>
+            <th className="p-3 font-medium">Orders</th>
+            <th className="p-3 font-medium">Status</th>
+            <th className="p-3 font-medium text-right">Quick Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {items.map((p) => (
+            <tr
+              key={p.id}
+              onClick={() => onRowClick(p.id)}
+              className="border-t border-brown/10 cursor-pointer hover:bg-cream/40 transition-colors"
+            >
+              <td className="p-3 text-brown">
+                <div className="flex items-center gap-3">
+                  <div className="relative w-10 h-10 rounded-sm overflow-hidden bg-brown/5 flex-shrink-0">
+                    {p.image_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-brown/20 text-[9px]">No image</div>
+                    )}
+                  </div>
+                  {p.name}
+                </div>
+              </td>
+              <td className="p-3 text-brown whitespace-nowrap">KSh {Number(p.price).toLocaleString()}</td>
+              <td className="p-3 text-brown/70 whitespace-nowrap">{soldCounts[p.id] ?? 0} sold</td>
+              <td className="p-3 space-x-2">
+                {p.is_hidden && <Badge label="Hidden" />}
+                {!p.is_available && <Badge label="Unavailable" />}
+                {p.is_featured && <Badge label="Featured" tone="caramel" />}
+                {!p.is_hidden && p.is_available && !p.is_featured && <Badge label="Live" tone="teal" />}
+              </td>
+              <td className="p-3 text-right whitespace-nowrap">
+                <div className="flex items-center justify-end gap-1">
+                  <button
+                    onClick={(e) => onToggle(e, p, "is_hidden")}
+                    className="p-1.5 text-teal hover:text-teal-dark"
+                    aria-label={p.is_hidden ? "Show on menu" : "Hide from menu"}
+                    title={p.is_hidden ? "Show on menu" : "Hide from menu"}
+                  >
+                    {p.is_hidden ? <Eye size={15} strokeWidth={1.75} /> : <EyeOff size={15} strokeWidth={1.75} />}
+                  </button>
+                  <button
+                    onClick={(e) => onToggle(e, p, "is_featured")}
+                    className={`p-1.5 ${p.is_featured ? "text-caramel" : "text-brown/40 hover:text-caramel"}`}
+                    aria-label={p.is_featured ? "Remove from featured" : "Mark as featured"}
+                    title={p.is_featured ? "Remove from featured" : "Mark as featured"}
+                  >
+                    <Star size={15} strokeWidth={1.75} fill={p.is_featured ? "currentColor" : "none"} />
+                  </button>
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }

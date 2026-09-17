@@ -35,6 +35,10 @@ export type ReceiptData = {
   /** When this receipt document was generated/printed — distinct from the
    * original sale/order date, which is `date` above. */
   generatedAt?: string | null;
+  /** Configured payment methods to show when money is still owed (unpaid/
+   * partial) — pulled from the same payment_methods table the admin
+   * configures under Payment Settings, so this is never hardcoded. */
+  paymentInstructions?: { label: string; detail: string }[];
 };
 
 export type ReceiptWidth = "screen" | "58mm" | "80mm";
@@ -184,6 +188,17 @@ export function Receipt({
             </div>
           )}
         </div>
+
+        {data.paymentInstructions && data.paymentInstructions.length > 0 && (
+          <div className="mt-4 pt-4 border-t border-dashed border-brown/30 print:break-inside-avoid">
+            <p className="text-xs font-semibold text-brown/60 mb-1.5 uppercase tracking-wide">Complete Your Payment</p>
+            {data.paymentInstructions.map((m, i) => (
+              <p key={i} className="text-xs text-brown/70">
+                <span className="font-medium text-brown">{m.label}:</span> {m.detail}
+              </p>
+            ))}
+          </div>
+        )}
 
         {data.trackingUrl && (
           <div className="flex flex-col items-center gap-1 mt-4 pt-4 border-t border-dashed border-brown/30 print:break-inside-avoid">

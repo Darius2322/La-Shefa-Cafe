@@ -1,6 +1,8 @@
 import Link from "next/link";
-import { PackageSearch, CheckCircle2, Clock3, MapPin, Search } from "lucide-react";
+import { PackageSearch, CheckCircle2, Clock3, MapPin, Search, MessageCircle, ShoppingBag } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { getFormattedPaymentMethods } from "@/lib/paymentMethods";
+import { waLink, waShareLink } from "@/lib/whatsapp";
 
 export const metadata = { title: "Track Order — La Shefa Cafe" };
 
@@ -42,9 +44,18 @@ export default async function SecureOrderTrackingPage({ params }: { params: { to
     );
   }
 
-  const items: { product_name: string; quantity: number }[] = order.items ?? [];
+  const [{ data: contactRow }, paymentInstructions] = await Promise.all([
+    supabase.from("site_settings").select("value").eq("key", "contact").maybeSingle(),
+    order.payment_status === "unpaid" || order.payment_status === "partial"
+      ? getFormattedPaymentMethods()
+      : Promise.resolve([])
+  ]);
+  const contact = contactRow?.value ?? null;
+
+  const items: { product_name: string; quantity: number; unit_price: number }[] = order.items ?? [];
   const isCancelled = order.status === "cancelled";
   const currentIndex = STATUS_STEPS.indexOf(order.status);
+  const shareText = `My La Shefa Cafe order ${order.order_number} — status: ${order.status.replace(/_/g, " ")}.`;
 
   return (
     <div className="container-lsc py-10 sm:py-16 max-w-lg">
@@ -88,6 +99,7 @@ export default async function SecureOrderTrackingPage({ params }: { params: { to
             {items.map((it, i) => (
               <li key={i} className="flex justify-between text-sm text-brown">
                 <span>{it.quantity} × {it.product_name}</span>
+                {it.unit_price != null && <span className="text-brown/60">KSh {(it.unit_price * it.quantity).toLocaleString()}</span>}
               </li>
             ))}
           </ul>
@@ -97,6 +109,17 @@ export default async function SecureOrderTrackingPage({ params }: { params: { to
           <span>KSh {Number(order.total).toLocaleString()}</span>
         </div>
         <p className="text-xs text-brown/50 mt-2 capitalize">Payment: {order.payment_status}</p>
+
+        {paymentInstructions.length > 0 && (
+          <div className="mt-4 pt-4 border-t border-brown/10">
+            <p className="text-xs font-semibold text-brown/50 uppercase tracking-wide mb-2">Complete Your Payment</p>
+            {paymentInstructions.map((m, i) => (
+              <p key={i} className="text-xs text-brown/70">
+                <span className="font-medium text-brown">{m.label}:</span> {m.detail}
+              </p>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="flex items-center gap-1.5 text-sm text-brown/60 mb-1">
@@ -109,9 +132,36 @@ export default async function SecureOrderTrackingPage({ params }: { params: { to
           Requested for {formatDateTime(order.scheduled_for)}
         </div>
       )}
-      <div className="flex items-center gap-1.5 text-sm text-brown/60 capitalize">
+      <div className="flex items-center gap-1.5 text-sm text-brown/60 capitalize mb-6">
         <MapPin size={13} strokeWidth={1.75} />
         {order.fulfillment_type}
+      </div>
+
+      <div className="flex flex-wrap gap-3">
+        <Link href="/menu" className="btn-primary">
+          <ShoppingBag size={16} strokeWidth={1.75} />
+          Order More
+        </Link>
+        {contact?.whatsapp && (
+          <a
+            href={waLink(contact.whatsapp, `Hi, I have a question about my order ${order.order_number}.`)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn-outline !text-brown !border-brown/30"
+          >
+            <MessageCircle size={16} strokeWidth={1.75} />
+            Message the Cafe
+          </a>
+        )}
+        <a
+          href={waShareLink(shareText)}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="btn-outline !text-brown !border-brown/30"
+        >
+          <MessageCircle size={16} strokeWidth={1.75} />
+          Save to WhatsApp
+        </a>
       </div>
     </div>
   );
